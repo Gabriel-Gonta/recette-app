@@ -9,13 +9,15 @@
 
 window.PLAN = {
   version: "2026-W40",
-  weekLabel: "Semaine 1",
-  weekStart: "2026-10-05",           // lundi de la semaine en cours
   startWeight: 110,
   goalWeight: 90,
   targets: { kcal: 2200, p: 185, c: 220, f: 65 },
-  note: "Première semaine : pèse le riz et les viandes, ça calibre ton œil pour la suite.",
 };
+
+/* Produits de placard : achetés une fois, ils durent plusieurs semaines.
+   Ils sont rangés à part dans la liste de courses. */
+window.PANTRY = ["riz", "whey", "soja", "ponzu", "miso", "huileSesame", "sesame", "vinaigre",
+  "doubanjiang", "katsuobushi", "dashi", "epices", "fecule", "wakame", "nori"];
 
 /* ---------- Table nutritionnelle (pour 100 g) ----------
    [nom, kcal, protéines, glucides, lipides, rayon] */
@@ -28,7 +30,6 @@ window.FOODS = {
 
   pouletBlanc:  ["Blanc de poulet sans peau", 105, 23.3, 0.1, 1.9, "Protéines"],
   pouletCuisse: ["Cuisse de poulet sans peau", 113, 19.0, 0.0, 5.0, "Protéines"],
-  porcHache:    ["Porc maigre haché (赤身)", 119, 22.1, 0.2, 3.6, "Protéines"],
   porcMomo:     ["Porc maigre (momo)", 119, 22.1, 0.2, 3.6, "Protéines"],
   boeufMomo:    ["Bœuf maigre (momo)", 117, 21.2, 0.4, 4.3, "Protéines"],
   shiozake:     ["Saumon salé (shiozake)", 183, 22.4, 0.1, 11.1, "Protéines"],
@@ -83,7 +84,7 @@ window.RECIPES = {
     ing: [
       ["riz", 150], ["shiozake", 100, "1 pavé"], ["oeuf", 100, "2 œufs"],
       ["soja", 5], ["huileSesame", 3, "pour la poêle"], ["dashi", 0, "1 c. à café dans les œufs"],
-      ["miso", 15, "soupe"], ["tofuSoyeux", 50, "soupe"], ["wakame", 20, "soupe"], ["negi", 5],
+      ["miso", 15, "soupe"], ["tofuFerme", 50, "soupe"], ["wakame", 20, "soupe"], ["negi", 5],
     ],
     steps: [
       "Grille le saumon salé 8 min à la poêle à sec (ou au gril du four), peau d'abord.",
@@ -144,7 +145,7 @@ window.RECIPES = {
     ing: [
       ["riz", 180], ["oeuf", 100, "2 œufs"], ["blancOeuf", 120, "brick de blancs"],
       ["shimeji", 60], ["epinards", 80], ["soja", 8], ["huileSesame", 5], ["sesame", 4],
-      ["tofuSoyeux", 60, "soupe"], ["miso", 12, "soupe"],
+      ["tofuFerme", 60, "soupe"], ["miso", 12, "soupe"],
     ],
     steps: [
       "Épinards 1 min dans l'eau bouillante, essore, coupe. Assaisonne avec 1/2 c. à café de soja et le sésame : goma-ae salé.",
@@ -203,24 +204,24 @@ window.RECIPES = {
     tip: "Les udon sont la spécialité de Fukuoka : gonbo ten en extra si tu sors, pas à la maison.",
   },
   goyaChampuru: {
-    name: "Champuru porc-tofu-œuf", jp: "ゴーヤチャンプルー", meal: "lunch", time: 15,
+    name: "Champuru porc-tofu-chou", jp: "キャベツチャンプルー", meal: "lunch", time: 15,
     ing: [
       ["porcMomo", 150], ["tofuFerme", 150], ["oeuf", 50],
-      ["goya", 100, "ou 150 g de chou"], ["riz", 150],
+      ["chou", 150], ["riz", 150],
       ["huileSesame", 6], ["soja", 10], ["katsuobushi", 3], ["dashi", 0],
     ],
     steps: [
       "Presse le tofu 10 min sous une assiette, coupe en gros cubes.",
-      "Goya coupée en demi-lunes, frottée au sel 5 min puis rincée (moins amère).",
-      "Poêle, huile de sésame : tofu doré 3 min, réserve. Porc 2 min, puis goya 2 min.",
+      "Chou coupé en gros carrés de 4 cm.",
+      "Poêle, huile de sésame : tofu doré 3 min, réserve. Porc 2 min, puis chou 2 min à feu vif.",
       "Remets le tofu, soja et dashi, verse l'œuf battu, mélange 30 s. Katsuobushi dessus.",
     ],
-    tip: "Pas fan de l'amertume ? Remplace la goya par du chou.",
+    tip: "Version d'Okinawa : avec de la goya (concombre amer) si tu veux tester.",
   },
   kakeSobaPoulet: {
     name: "Soba chaud poulet & champignons", jp: "鶏きのこそば", meal: "lunch", time: 15,
     ing: [
-      ["soba", 100], ["pouletCuisse", 160], ["shimeji", 60], ["enoki", 50],
+      ["soba", 100], ["pouletCuisse", 160], ["shimeji", 100],
       ["negi", 20], ["oeuf", 50],
       ["soja", 22], ["dashi", 0], ["epices", 0, "yuzu koshō ou shichimi"],
     ],
@@ -235,7 +236,7 @@ window.RECIPES = {
   mapoTofu: {
     name: "Mapo tofu léger", jp: "麻婆豆腐", meal: "lunch", time: 15,
     ing: [
-      ["tofuFerme", 250], ["porcHache", 120], ["riz", 150],
+      ["tofuFerme", 250], ["porcMomo", 120, "haché au couteau ou acheté haché maigre"], ["riz", 150],
       ["doubanjiang", 12], ["ail", 5], ["gingembre", 5], ["negi", 20],
       ["soja", 8], ["huileSesame", 5], ["fecule", 6], ["epices", 0, "poivre du Sichuan"],
     ],
@@ -251,12 +252,12 @@ window.RECIPES = {
     name: "Chahan poulet aux œufs", jp: "鶏チャーハン", meal: "lunch", time: 12,
     ing: [
       ["riz", 160, "idéalement de la veille"], ["pouletBlanc", 150], ["oeuf", 100, "2 œufs"],
-      ["negi", 30], ["carotte", 40], ["epinards", 50],
+      ["negi", 30], ["epinards", 60],
       ["huileSesame", 7], ["soja", 10], ["epices", 0, "poivre, sel"],
     ],
     steps: [
       "Poulet en petits dés, saisi 3 min à la poêle très chaude avec la moitié de l'huile. Réserve.",
-      "Carotte en petits dés 2 min, puis riz froid, écrase les grumeaux.",
+      "Riz froid dans la poêle chaude, écrase les grumeaux.",
       "Pousse le riz sur le côté, verse les œufs battus, brouille, mélange à tout le riz.",
       "Remets le poulet, épinards, soja versé sur les bords de la poêle, ciboule, reste d'huile de sésame.",
     ],
@@ -323,12 +324,12 @@ window.RECIPES = {
     tip: "La version de chaîne contient du sucre et du mirin : la tienne est 100 % salée.",
   },
   kaisendon: {
-    name: "Kaisendon thon-saumon", jp: "海鮮丼", meal: "dinner", time: 15,
+    name: "Kaisendon thon", jp: "海鮮丼", meal: "dinner", time: 15,
     ing: [
-      ["thon", 120], ["saumonSashimi", 60], ["riz", 160], ["vinaigre", 10, "dans le riz"],
+      ["thon", 170, "ou mélange thon-saumon"], ["riz", 160], ["vinaigre", 10, "dans le riz"],
       ["wakame", 40], ["concombre", 60], ["ponzu", 10], ["sesame", 3],
       ["nori", 3], ["soja", 10], ["epices", 0, "wasabi"],
-      ["tofuSoyeux", 80, "soupe miso"], ["miso", 12],
+      ["tofuFerme", 80, "soupe miso"], ["miso", 12],
     ],
     steps: [
       "Mélange le riz tiède avec le vinaigre et une pincée de sel (pas de sucre).",
@@ -341,13 +342,13 @@ window.RECIPES = {
   yakitoriShio: {
     name: "Yakitori shio maison & shio kyabetsu", jp: "焼き鳥 塩", meal: "dinner", time: 30,
     ing: [
-      ["pouletCuisse", 150], ["pouletBlanc", 100], ["negi", 60], ["poivron", 60],
-      ["patate", 200], ["chou", 120], ["huileSesame", 5],
+      ["pouletCuisse", 150], ["pouletBlanc", 100], ["negi", 60],
+      ["shimeji", 60, "en brochette ou poêlés"], ["patate", 200], ["chou", 150], ["huileSesame", 5],
       ["epices", 0, "sel, shichimi, citron"],
     ],
     steps: [
       "Patate douce au micro-ondes ou au four (voir buta shabu).",
-      "Poulet en cubes de 3 cm, alterne avec negi et poivron sur des piques (ou à la poêle, sans pique).",
+      "Poulet en cubes de 3 cm, alterne avec les tronçons de negi sur des piques (ou à la poêle, sans pique).",
       "Sel des deux côtés. Poêle-gril ou four à 250°C, 10-12 min en retournant.",
       "Shio kyabetsu comme dans les yakitoris de Fukuoka : chou en gros morceaux, huile de sésame, sel. Shichimi et citron sur le poulet.",
     ],
@@ -384,16 +385,24 @@ window.SAUCES = [
     use: "Diluer avec 1 c. à soupe d'eau : légumes vapeur, patate douce." },
 ];
 
-/* ---------- Menu de la semaine (0 = lundi) ---------- */
-window.MENU = [
-  { breakfast: "teishokuSaumon", lunch: "zaruSobaPoulet",   dinner: "mizutaki" },
-  { breakfast: "bolOeufPoulet",  lunch: "pouletSesameMeal", dinner: "butaShabu" },
-  { breakfast: "sabaHiyayakko",  lunch: "nikuUdon",         dinner: "saumonSesame" },
-  { breakfast: "okayuPoulet",    lunch: "goyaChampuru",     dinner: "gyudonLight" },
-  { breakfast: "tamagoEpinards", lunch: "kakeSobaPoulet",   dinner: "kaisendon" },
-  { breakfast: "teishokuSaumon", lunch: "mapoTofu",         dinner: "yakitoriShio" },
-  { breakfast: "okayuPoulet",    lunch: "chahan",           dinner: "kimchiNabe" },
-];
+/* ---------- Menus semaine par semaine ----------
+   Une entrée par lundi. Si une semaine n'a pas encore de menu,
+   l'app reprend le dernier menu disponible.            */
+window.WEEKS = {
+  "2026-10-05": {
+    label: "Semaine 1",
+    note: "Première semaine : pèse le riz et les viandes, ça calibre ton œil pour la suite.",
+    menu: [
+      { breakfast: "teishokuSaumon", lunch: "zaruSobaPoulet",   dinner: "mizutaki" },
+      { breakfast: "bolOeufPoulet",  lunch: "pouletSesameMeal", dinner: "butaShabu" },
+      { breakfast: "sabaHiyayakko",  lunch: "nikuUdon",         dinner: "saumonSesame" },
+      { breakfast: "okayuPoulet",    lunch: "goyaChampuru",     dinner: "gyudonLight" },
+      { breakfast: "tamagoEpinards", lunch: "kakeSobaPoulet",   dinner: "kaisendon" },
+      { breakfast: "teishokuSaumon", lunch: "mapoTofu",         dinner: "yakitoriShio" },
+      { breakfast: "okayuPoulet",    lunch: "chahan",           dinner: "kimchiNabe" },
+    ],
+  },
+};
 
 window.SHAKER = { name: "Shaker whey à l'eau", ing: [["whey", 30]] };
 

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const { PLAN, FOODS, RECIPES, SAUCES, MENU, SHAKER, SESSIONS, SCHEDULE, RULES, PREP } = window;
+  const { PLAN, FOODS, RECIPES, SAUCES, WEEKS, PANTRY, SHAKER, SESSIONS, SCHEDULE, RULES, PREP } = window;
 
   /* ---------------- helpers ---------------- */
   const $ = (s, el = document) => el.querySelector(s);
@@ -57,7 +57,22 @@
   const dayLog = (date) => (log[date] ||= { sets: {}, kg: {}, meals: {}, extra: {} });
 
   const sessionKeyFor = (date) => (log[date] && log[date].session) || SCHEDULE[dow(parse(date))];
-  const menuFor = (date) => MENU[dow(parse(date))];
+  // Menu de la semaine : l'entrée WEEKS du lundi, sinon la dernière disponible avant
+  const WEEK_KEYS = Object.keys(WEEKS).sort();
+  function weekFor(date) {
+    const mon = iso(mondayOf(parse(date)));
+    let key = WEEK_KEYS[0];
+    for (const k of WEEK_KEYS) if (k <= mon) key = k;
+    return { ...WEEKS[key], own: key === mon, monday: mon };
+  }
+  const menuFor = (date) => weekFor(date).menu[dow(parse(date))];
+  function weekRange(date) {
+    const mon = mondayOf(parse(date)), sun = addDays(mon, 6);
+    return mon.getMonth() === sun.getMonth()
+      ? `${mon.getDate()} → ${sun.getDate()} ${MONTHS[sun.getMonth()]}`
+      : `${mon.getDate()} ${MONTHS[mon.getMonth()].slice(0, 4)}. → ${sun.getDate()} ${MONTHS[sun.getMonth()].slice(0, 4)}.`;
+  }
+  const weekTitle = (date) => { const w = weekFor(date); return w.own ? w.label : `Semaine du ${weekRange(date)}`; };
 
   /* ---------------- week strip ---------------- */
   function renderDays() {
@@ -206,11 +221,12 @@
 
   function renderRepas() {
     const seg = state.repasSeg;
-    const segs = [["jour", "Jour"], ["recettes", "Recettes"], ["sauces", "Sauces"]];
+    const segs = [["jour", "Jour"], ["semaine", "Semaine"], ["recettes", "Recettes"], ["sauces", "Sauces"]];
     const segHtml = `<div class="seg" role="group" aria-label="Affichage">${segs.map(([k, l]) =>
       `<button data-seg="${k}" aria-pressed="${seg === k}">${l}</button>`).join("")}</div>`;
 
     if (seg === "recettes") return segHtml + renderRecipeLibrary();
+    if (seg === "semaine") return segHtml + renderWeekMenu();
     if (seg === "sauces") return segHtml + renderSauces();
 
     const date = state.date;
@@ -253,8 +269,24 @@
             </button></li>`;
         }).join("")}
       </ul>
-      ${PLAN.note ? `<p class="note">${esc(PLAN.note)}</p>` : ""}
+      ${(() => { const w = weekFor(date); return w.own && w.note ? `<p class="note">${esc(w.note)}</p>` : ""; })()}
     `;
+  }
+
+  function renderWeekMenu() {
+    const mon = mondayOf(parse(state.date));
+    const today = todayIso();
+    let html = `<section class="hero" style="padding-bottom:4px"><div class="hero-day"><span>${esc(weekTitle(state.date))}</span>
+      <span class="num" style="font-size:13px">${weekRange(state.date)}</span></div></section>`;
+    for (let i = 0; i < 7; i++) {
+      const dt = iso(addDays(mon, i));
+      const m = menuFor(dt);
+      html += `<div class="wk-day ${dt === today ? "today" : ""} ${dt === state.date ? "sel" : ""}">
+        <button class="wk-label" data-date-go="${dt}"><b>${DAY_SHORT[i]}</b><span class="num">${addDays(mon, i).getDate()}</span></button>
+        <div class="wk-meals">${["breakfast", "lunch", "dinner"].map((s) =>
+          `<button data-recipe="${m[s]}"><span>${MEAL_LABEL[s]}</span>${esc(RECIPES[m[s]].name)}</button>`).join("")}</div></div>`;
+    }
+    return html;
   }
 
   function renderRecipeLibrary() {
@@ -324,18 +356,18 @@
   }
 
   /* ---------------- COURSES ---------------- */
-  function shoppingList() {
+  function shoppingList(date) {
     const totals = {};
-    MENU.forEach((day) => ["breakfast", "lunch", "dinner"].forEach((slot) => {
+    weekFor(date).menu.forEach((day) => ["breakfast", "lunch", "dinner"].forEach((slot) => {
       RECIPES[day[slot]].ing.forEach(([k, g]) => { totals[k] = (totals[k] || 0) + g; });
     }));
     SHAKER.ing.forEach(([k, g]) => { totals[k] = (totals[k] || 0) + g * 7; });
-    const groups = {};
+    const groups = {}, pantry = [];
     for (const [k, g] of Object.entries(totals)) {
-      const rayon = FOODS[k][5];
-      (groups[rayon] ||= []).push({ k, g });
+      if (PANTRY.includes(k)) { pantry.push({ k, g }); continue; }
+      (groups[FOODS[k][5]] ||= []).push({ k, g });
     }
-    return groups;
+    return { groups, pantry };
   }
 
   function qtyLabel(k, g) {
@@ -343,37 +375,52 @@
     if (k === "oeuf") return `${Math.ceil(g / 50)} œufs`;
     if (k === "nori") return `${Math.ceil(g / 3)} feuilles`;
     if (k === "udon") return `${Math.ceil(g / 200)} packs`;
-    if (k === "riz") return `${fmt(Math.round(g / 100) / 10, 1)} kg cuit · ${fmt(Math.round(g * 0.43 / 100) / 10, 1)} kg cru`;
+    if (k === "riz") return `${fmt(Math.round(g * 0.43 / 100) / 10, 1)} kg cru`;
     if (k === "ail") return `${Math.ceil(g / 5)} gousses`;
     if (k === "whey") return `${fmt(g)} g`;
     const r = g >= 100 ? Math.ceil(g / 50) * 50 : Math.ceil(g / 10) * 10;
     return r >= 1000 ? `${fmt(r / 1000, r % 1000 ? 2 : 0).replace(/0$/, "")} kg` : `${r} g`;
   }
 
+  const foodName = (k) => FOODS[k][0].replace(/\s*\((1|poudre).*\)/, "");
+
   function renderCourses() {
-    const groups = shoppingList();
-    const checked = store.get("shop." + PLAN.version, {});
+    const date = state.date;
+    const mon = iso(mondayOf(parse(date)));
+    const { groups, pantry } = shoppingList(date);
+    const checked = store.get("shop." + mon, {});
+    const have = store.get("pantry", {});
     const order = ["Protéines", "Féculents", "Légumes", "Épicerie", "Sauces"];
     const all = Object.values(groups).flat();
     const nDone = all.filter((x) => checked[x.k]).length;
+    const toBuy = pantry.filter((x) => !have[x.k]);
+    const item = (k, g, on, attr) => `<button class="shop-item ${on ? "on" : ""}" ${attr}="${k}" aria-pressed="${on}">
+        <span class="check">${ICON.check}</span>
+        <span class="block-main"><span class="block-title">${esc(foodName(k))}</span>
+        <span class="shop-qty num">${qtyLabel(k, g)}</span></span></button>`;
+    const menu = weekFor(date).menu;
     return `
       <section class="hero">
-        <div class="hero-day"><span>${esc(PLAN.weekLabel)}</span>
-          ${nDone ? `<button class="link-btn" data-action="shop-reset">Tout décocher</button>` : ""}</div>
+        <div class="hero-day"><span>${esc(weekTitle(date))}</span><span class="num" style="font-size:13px">${weekRange(date)}</span></div>
         <h1 class="hero-title">Courses</h1>
-        <div class="hero-meta"><span class="chip accent num">${nDone} / ${all.length}</span><span class="chip">7 jours de menus</span></div>
+        <div class="hero-meta"><span class="chip accent num">${nDone} / ${all.length} cochés</span>
+          ${nDone ? `<button class="chip" data-action="shop-reset">Tout décocher</button>` : ""}</div>
+        <p class="section-sub" style="margin:12px 0 0">Pour les 7 jours de cette semaine uniquement. Coche ce que tu achètes <b style="color:var(--text)">ou ce qu'il te reste déjà</b> de la semaine d'avant. La liste repart à zéro chaque lundi.</p>
       </section>
+      <details class="rules" style="margin-top:4px"><summary>Les plats de la semaine ${ICON.down}</summary>
+        <ul class="wk-mini">${menu.map((m, i) => `<li><b>${DAY_SHORT[i]}</b>${["breakfast", "lunch", "dinner"].map((s) =>
+          `<button data-recipe="${m[s]}">${esc(RECIPES[m[s]].name)}</button>`).join("")}</li>`).join("")}</ul>
+      </details>
       ${order.filter((o) => groups[o]).map((o) => `
         <div class="shop-group"><h3>${o}</h3>
-          ${groups[o].sort((a, b) => b.g - a.g).map(({ k, g }) => {
-            const on = !!checked[k];
-            return `<button class="shop-item ${on ? "on" : ""}" data-shop="${k}" aria-pressed="${on}">
-              <span class="check">${ICON.check}</span>
-              <span class="block-main"><span class="block-title">${esc(FOODS[k][0].replace(/\s*\((1|poudre).*\)/, ""))}</span>
-              <span class="shop-qty num">${qtyLabel(k, g)}</span></span></button>`;
-          }).join("")}
+          ${groups[o].sort((a, b) => b.g - a.g).map(({ k, g }) => item(k, g, !!checked[k], "data-shop")).join("")}
         </div>`).join("")}
-      <p class="note">Gyomu Super et Trial pour le volume, AEON pour le poisson. Les sashimis passent à -30 % après 19 h.</p>
+      <details class="rules pantry" ${toBuy.length ? "open" : ""}>
+        <summary><span>Placard <small class="num">${toBuy.length ? `${toBuy.length} à racheter` : "tout est là"}</small></span>${ICON.down}</summary>
+        <p class="section-sub" style="margin:0 0 4px">Sauces, riz, whey : ça dure plusieurs semaines. Coché = tu en as. Décoche quand c'est fini, ça restera dans ta liste jusqu'à ce que tu le rachètes.</p>
+        ${pantry.sort((a, b) => (!!have[a.k]) - (!!have[b.k]) || b.g - a.g).map(({ k, g }) => item(k, g, !!have[k], "data-pantry")).join("")}
+      </details>
+      <p class="note">Poisson cru : achète-le le jour même (vendredi). Gyomu Super et Trial pour le volume, AEON pour le poisson.</p>
     `;
   }
 
@@ -471,7 +518,7 @@
   function buildReport() {
     const mon = mondayOf(parse(state.date));
     const w = weights(); const wz = waists();
-    const lines = [`BILAN ${PLAN.weekLabel} (plan ${PLAN.version}) — semaine du ${mon.getDate()}/${mon.getMonth() + 1}`];
+    const lines = [`BILAN ${weekTitle(state.date)} (plan ${PLAN.version}) — semaine du ${mon.getDate()}/${mon.getMonth() + 1}`];
     const dayVals = [];
     let gymDone = 0, gymPlanned = 0, mealsDone = 0, cardioDone = 0;
     const lifts = {};
@@ -597,7 +644,7 @@
   $("#nextWeek").addEventListener("click", () => setDate(iso(addDays(parse(state.date), 7))));
 
   document.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-set],[data-toggle-cue],[data-extra],[data-meal],[data-recipe],[data-seg],[data-shop],[data-action],[data-pick-session],[data-mult],[data-del-weight]");
+    const el = e.target.closest("[data-set],[data-toggle-cue],[data-extra],[data-meal],[data-recipe],[data-seg],[data-shop],[data-action],[data-pick-session],[data-mult],[data-del-weight],[data-pantry],[data-date-go]");
     if (!el) return;
     const ds = el.dataset;
 
@@ -626,11 +673,17 @@
       const L = dayLog(state.date); L.meals[ds.meal] = !L.meals[ds.meal]; saveLog();
       const y = window.scrollY; render(); window.scrollTo(0, y); return;
     }
+    if (ds.pantry) {
+      const h = store.get("pantry", {}); h[ds.pantry] = !h[ds.pantry]; store.set("pantry", h);
+      const y = window.scrollY; render(); window.scrollTo(0, y); return;
+    }
+    if (ds.dateGo) { state.repasSeg = "jour"; store.set("repasSeg", "jour"); setDate(ds.dateGo); window.scrollTo({ top: 0 }); return; }
     if (ds.mult) { openRecipe(ds.rid, Number(ds.mult)); return; }
     if (ds.recipe) { openRecipe(ds.recipe); return; }
     if (ds.seg) { state.repasSeg = ds.seg; store.set("repasSeg", ds.seg); render(true); return; }
     if (ds.shop) {
-      const c = store.get("shop." + PLAN.version, {}); c[ds.shop] = !c[ds.shop]; store.set("shop." + PLAN.version, c);
+      const key = "shop." + iso(mondayOf(parse(state.date)));
+      const c = store.get(key, {}); c[ds.shop] = !c[ds.shop]; store.set(key, c);
       const y = window.scrollY; render(); window.scrollTo(0, y); return;
     }
     if (ds.pickSession) {
@@ -643,7 +696,7 @@
     }
     switch (ds.action) {
       case "swap": openSwapSheet(); break;
-      case "shop-reset": store.set("shop." + PLAN.version, {}); render(); break;
+      case "shop-reset": store.set("shop." + iso(mondayOf(parse(state.date))), {}); render(); break;
       case "save-weight": {
         const v = parseFloat(String($("#weightIn").value).replace(",", "."));
         if (!v || v < 40 || v > 200) { toast("Entre un poids entre 40 et 200 kg"); return; }
