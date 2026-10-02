@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const { PLAN, FOODS, RECIPES, SAUCES, WEEKS, PANTRY, SHAKER, SESSIONS, SCHEDULE, RULES, PREP } = window;
+  const { PLAN, FOODS, RECIPES, SAUCES, WEEKS, PANTRY, SHAKER, SESSIONS, SCHEDULE, RULES, PREP, SUPPLEMENTS, SUPP_MOMENTS } = window;
 
   /* ---------------- helpers ---------------- */
   const $ = (s, el = document) => el.querySelector(s);
@@ -54,7 +54,7 @@
   };
   let log = store.get("log", {});
   const saveLog = () => store.set("log", log);
-  const dayLog = (date) => (log[date] ||= { sets: {}, kg: {}, meals: {}, extra: {} });
+  const dayLog = (date) => { const l = (log[date] ||= { sets: {}, kg: {}, meals: {}, extra: {} }); l.supp ||= {}; return l; };
 
   const sessionKeyFor = (date) => (log[date] && log[date].session) || SCHEDULE[dow(parse(date))];
   // Menu de la semaine : l'entrée WEEKS du lundi, sinon la dernière disponible avant
@@ -424,6 +424,70 @@
     `;
   }
 
+  /* ---------------- COMPLÉMENTS ---------------- */
+  const perDay = (s) => s.take.reduce((a, t) => a + t.n, 0);
+  function jarStatus(s) {
+    const start = store.get("jars", {})[s.id];
+    if (!start) return null;
+    let used = 0;
+    for (const [date, l] of Object.entries(log)) {
+      if (date < start || !l.supp) continue;
+      for (const t of s.take) if (l.supp[`${s.id}:${t.at}`]) used += t.n;
+    }
+    const left = Math.max(0, s.jar - used);
+    return { start, left, days: Math.floor(left / perDay(s)) };
+  }
+
+  function renderCompl() {
+    const date = state.date; const d = parse(date); const L = dayLog(date);
+    let total = 0, done = 0, moments = "";
+    for (const [at, m] of Object.entries(SUPP_MOMENTS)) {
+      const items = SUPPLEMENTS.flatMap((s) => s.take.filter((t) => t.at === at).map((t) => ({ s, t })));
+      if (!items.length) continue;
+      moments += `<div class="moment"><div class="moment-head"><b>${m.label}</b><span>${m.hint}</span></div>
+        ${items.map(({ s, t }) => {
+          const k = `${s.id}:${at}`; const on = !!L.supp[k]; total++; if (on) done++;
+          return `<button class="pill ${on ? "on" : ""}" data-supp="${k}" aria-pressed="${on}">
+            <span class="check">${ICON.check}</span><span class="block-title">${esc(s.name)}</span>
+            <span class="pill-n num">${t.n} gélule${t.n > 1 ? "s" : ""}</span></button>`;
+        }).join("")}</div>`;
+    }
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    const list = SUPPLEMENTS.map((s) => {
+      const st = jarStatus(s);
+      const WHEN = { petitdej: "matin", avantDej: "midi", avantDiner: "soir", soir: "soir" };
+      const sched = `${perDay(s)} / jour · ${[...new Set(s.take.map((t) => WHEN[t.at]))].join(" + ")}`;
+      const stock = st
+        ? `<div class="supp-stock num ${st.days <= 7 ? "low" : ""}"><div class="bar"><i style="width:${(st.left / s.jar) * 100}%"></i></div>
+            <span><b>${st.left}</b> gélules · ${st.days <= 0 ? "pot vide" : `${st.days} j restants`}</span></div>`
+        : `<div class="supp-stock"><span style="color:var(--muted)">Stock non suivi</span></div>`;
+      return `<div class="supp" data-supp-card="${s.id}">
+        <button class="supp-head" data-supp-open="${s.id}" aria-expanded="false"><h3>${esc(s.name)}</h3><span class="supp-sched num">${sched}</span></button>
+        <p class="supp-detail">${esc(s.detail)}</p>
+        ${stock}
+        <div class="supp-more">
+          <p><b>Pourquoi</b> · <span style="color:var(--muted)">${esc(s.why)}</span></p>
+          <p><b>Comment</b> · <span style="color:var(--muted)">${esc(s.how)}</span></p>
+          <p><b>Cure</b> · <span style="color:var(--muted)">${esc(s.cure)}</span></p>
+          ${s.warn ? `<p class="warn">${esc(s.warn)}</p>` : ""}
+          <button class="chip" data-jar="${s.id}">${st ? "Nouveau pot ouvert aujourd'hui" : `Pot ouvert aujourd'hui (${s.jar} gélules)`}</button>
+        </div></div>`;
+    }).join("");
+    return `
+      <section class="hero">
+        <div class="hero-day"><span>${DAY_LONG[dow(d)]} ${d.getDate()} ${MONTHS[d.getMonth()]}</span></div>
+        <h1 class="hero-title long">Compléments</h1>
+        <div class="progress"><i style="width:${pct}%"></i></div>
+        <div class="progress-label num"><span>${done} / ${total} prises</span><span>${pct} %</span></div>
+      </section>
+      ${moments}
+      <h2 class="section-title">Mes compléments</h2>
+      <p class="section-sub">Touche un complément pour voir pourquoi et comment le prendre, et suivre ton stock.</p>
+      <div>${list}</div>
+      <p class="disclaimer">Posologies d'Aroma-Zone. Ce n'est pas un avis médical : si tu prends un traitement, demande à un médecin ou un pharmacien.</p>
+    `;
+  }
+
   /* ---------------- SUIVI ---------------- */
   const weights = () => store.get("weights", {});
   const waists = () => store.get("waist", {});
@@ -520,7 +584,7 @@
     const w = weights(); const wz = waists();
     const lines = [`BILAN ${weekTitle(state.date)} (plan ${PLAN.version}) — semaine du ${mon.getDate()}/${mon.getMonth() + 1}`];
     const dayVals = [];
-    let gymDone = 0, gymPlanned = 0, mealsDone = 0, cardioDone = 0;
+    let gymDone = 0, gymPlanned = 0, mealsDone = 0, cardioDone = 0, suppDone = 0;
     const lifts = {};
     for (let i = 0; i < 7; i++) {
       const dt = iso(addDays(mon, i));
@@ -534,6 +598,7 @@
         if (L) for (const [n, v] of Object.entries(L.kg || {})) if (v) lifts[n] = v;
       } else if (s.kind === "cardio" && L && Object.keys(L.extra).some((k) => k.startsWith(key) && L.extra[k])) cardioDone++;
       if (L) mealsDone += Object.values(L.meals).filter(Boolean).length;
+      if (L && L.supp) suppDone += Object.values(L.supp).filter(Boolean).length;
     }
     const a = weekAvg(mon), p = weekAvg(addDays(mon, -7));
     lines.push(`Poids : ${dayVals.join(", ") || "pas de pesée"}`);
@@ -542,6 +607,7 @@
     if (wzE.length) lines.push(`Tour de taille : ${fmt(wzE[wzE.length - 1][1], 1)} cm`);
     lines.push(`Séances muscu complètes : ${gymDone}/${gymPlanned} · cardio : ${cardioDone}`);
     lines.push(`Repas cochés : ${mealsDone}/28`);
+    lines.push(`Compléments pris : ${suppDone}/${SUPPLEMENTS.reduce((a, s) => a + s.take.length, 0) * 7}`);
     if (Object.keys(lifts).length) lines.push("Charges : " + Object.entries(lifts).map(([n, v]) => `${n} ${v} kg`).join(" ; "));
     lines.push("Ressenti (faim, énergie, sommeil) : ");
     return lines.join("\n");
@@ -626,7 +692,7 @@
     document.querySelectorAll(".tab").forEach((t) => { if (t.dataset.tab === state.tab) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current"); });
     renderDays();
     const v = $("#view");
-    const views = { salle: renderSalle, repas: renderRepas, courses: renderCourses, suivi: renderSuivi };
+    const views = { salle: renderSalle, repas: renderRepas, courses: renderCourses, compl: renderCompl, suivi: renderSuivi };
     v.innerHTML = views[state.tab]();
     if (animate) { v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); }
   }
@@ -644,7 +710,7 @@
   $("#nextWeek").addEventListener("click", () => setDate(iso(addDays(parse(state.date), 7))));
 
   document.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-set],[data-toggle-cue],[data-extra],[data-meal],[data-recipe],[data-seg],[data-shop],[data-action],[data-pick-session],[data-mult],[data-del-weight],[data-pantry],[data-date-go]");
+    const el = e.target.closest("[data-set],[data-toggle-cue],[data-extra],[data-meal],[data-recipe],[data-seg],[data-shop],[data-action],[data-pick-session],[data-mult],[data-del-weight],[data-pantry],[data-date-go],[data-supp],[data-supp-open],[data-jar]");
     if (!el) return;
     const ds = el.dataset;
 
@@ -672,6 +738,19 @@
     if (ds.meal) {
       const L = dayLog(state.date); L.meals[ds.meal] = !L.meals[ds.meal]; saveLog();
       const y = window.scrollY; render(); window.scrollTo(0, y); return;
+    }
+    if (ds.supp) {
+      const L = dayLog(state.date); L.supp[ds.supp] = !L.supp[ds.supp]; saveLog();
+      const y = window.scrollY; render(); window.scrollTo(0, y); return;
+    }
+    if (ds.suppOpen) {
+      const c = el.closest(".supp"); c.classList.toggle("open"); el.setAttribute("aria-expanded", c.classList.contains("open")); return;
+    }
+    if (ds.jar) {
+      const j = store.get("jars", {}); j[ds.jar] = todayIso(); store.set("jars", j); toast("Nouveau pot noté");
+      const y = window.scrollY; render(); window.scrollTo(0, y);
+      const card = document.querySelector(`[data-supp-card="${ds.jar}"]`); if (card) card.classList.add("open");
+      return;
     }
     if (ds.pantry) {
       const h = store.get("pantry", {}); h[ds.pantry] = !h[ds.pantry]; store.set("pantry", h);

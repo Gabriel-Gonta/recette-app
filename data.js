@@ -498,3 +498,56 @@ window.PREP = [
   "3 patates douces au four, 45 min à 200 °C.",
   "Lave et coupe chou, ciboule et brocolis pour 3 jours.",
 ];
+
+/* ---------- Compléments alimentaires (Aroma-Zone) ----------
+   moments : petitdej | avantDej | avantDiner | soir
+   jar = nombre de gélules dans le pot                        */
+window.SUPPLEMENTS = [
+  {
+    id: "omega3", name: "Oméga-3 vegan", detail: "250 mg DHA + 50 mg EPA par capsule (micro-algue)",
+    take: [{ at: "petitdej", n: 1 }], jar: 60,
+    why: "Complète le saba et le saumon de la semaine. Bon pour le cœur et l'inflammation pendant la sèche.",
+    how: "Avec le petit-déj : les oméga-3 s'absorbent mieux avec un repas qui contient du gras (œufs, poisson).",
+    cure: "En continu.",
+    warn: "Avis médical si tu prends un anticoagulant.",
+  },
+  {
+    id: "peau", name: "Complexe Peau nette", detail: "Bardane, ortie, pépin de raisin, pensée sauvage, zinc 10 mg, vitamine C",
+    take: [{ at: "petitdej", n: 2 }], jar: 60,
+    why: "Zinc et plantes dépuratives pour une peau plus nette.",
+    how: "Les 2 gélules au petit-déj, avec un grand verre d'eau. Le matin, pour éloigner le zinc du magnésium pris le soir (ils se gênent à l'absorption).",
+    cure: "Cure de 1 à 3 mois, puis pause de 1 mois.",
+    warn: "",
+  },
+  {
+    id: "glucose", name: "Glucose Contrôle", detail: "Cannelle de Ceylan + mûrier blanc (Reducose®)",
+    take: [{ at: "avantDej", n: 1 }, { at: "avantDiner", n: 1 }], jar: 60,
+    why: "Limite le pic de glycémie après les repas riches en riz, soba ou udon.",
+    how: "1 gélule 10 à 15 min avant le déjeuner, 1 avant le dîner, avec un grand verre d'eau (posologie Aroma-Zone : 2 par jour avant les repas principaux).",
+    cure: "Cure renouvelable si besoin.",
+    warn: "Avis médical si tu as un traitement contre le diabète.",
+  },
+  {
+    id: "magnesium", name: "Magnésium triple", detail: "Bisglycinate + magnésium marin + laitue de mer",
+    take: [{ at: "soir", n: 3 }], jar: 120,
+    why: "Récupération musculaire, crampes, sommeil. Tu en perds plus avec la transpiration (salle, boxe).",
+    how: "Les 3 gélules au dîner ou au coucher. Le bisglycinate est doux pour le ventre.",
+    cure: "En continu, ou cures de 2 à 3 mois.",
+    warn: "",
+  },
+  {
+    id: "ashwa", name: "Ashwagandha BIO", detail: "KSM-66® 500 mg par gélule",
+    take: [{ at: "soir", n: 1 }], jar: 60,
+    why: "Stress, qualité du sommeil, récupération. Aide aussi à garder la force en déficit calorique.",
+    how: "1 gélule au dîner. Tu peux passer à 2 (1 le matin + 1 le soir) si tu le tolères bien, sans dépasser 2 par jour.",
+    cure: "8 semaines, puis 2 à 4 semaines de pause.",
+    warn: "Déconseillé en cas de trouble de la thyroïde ou avec des somnifères ou anxiolytiques : demande à un médecin. Arrête si tu as des troubles digestifs.",
+  },
+];
+
+window.SUPP_MOMENTS = {
+  petitdej:   { label: "Au petit-déj", hint: "avec le repas" },
+  avantDej:   { label: "Avant le déjeuner", hint: "10-15 min avant" },
+  avantDiner: { label: "Avant le dîner", hint: "10-15 min avant" },
+  soir:       { label: "Au dîner", hint: "ou au coucher" },
+};
