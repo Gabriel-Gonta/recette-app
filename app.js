@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  const { PLAN, FOODS, RECIPES, SAUCES, WEEKS, PANTRY, SHAKER, SESSIONS, SCHEDULE, RULES, PREP, SUPPLEMENTS, SUPP_MOMENTS } = window;
+  const { PLAN, FOODS, RECIPES, SAUCES, WEEKS, PANTRY, SHAKER, SESSIONS, GYM_ROTATION, RULES, PREP, SUPPLEMENTS, SUPP_MOMENTS,
+    TRIP, SORTIES, DAYS, EVENTS, BOOKINGS, TRIP_RULES, TRANSPORT, PASSES, PASS_NOTES, COSTS } = window;
 
   /* ---------------- helpers ---------------- */
   const $ = (s, el = document) => el.querySelector(s);
@@ -15,6 +16,12 @@
     down: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
     swap: '<svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg>',
     x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+    route: '<svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7"/></svg>',
+    train: '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="13" rx="3"/><path d="M5 10h14M8 20l2-4M16 20l-2-4"/><circle cx="9" cy="13" r=".6"/><circle cx="15" cy="13" r=".6"/></svg>',
+    plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+    info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+    bowl: '<svg viewBox="0 0 24 24"><path d="M4 11h16a8 8 0 0 1-16 0z"/></svg>',
     copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
   };
 
@@ -48,7 +55,9 @@
 
   /* ---------------- state ---------------- */
   const state = {
-    tab: store.get("tab", "salle"),
+    tab: store.get("tab", "planning"),
+    planSeg: store.get("planSeg", "jour"),
+    calMonth: null,
     date: todayIso(),
     repasSeg: store.get("repasSeg", "jour"),
   };
@@ -56,7 +65,58 @@
   const saveLog = () => store.set("log", log);
   const dayLog = (date) => { const l = (log[date] ||= { sets: {}, kg: {}, meals: {}, extra: {} }); l.supp ||= {}; return l; };
 
-  const sessionKeyFor = (date) => (log[date] && log[date].session) || SCHEDULE[dow(parse(date))];
+  /* ---------------- planning : cœur ---------------- */
+  let plan = store.get("plan", {});
+  plan.assign ||= {}; plan.done ||= {}; plan.notes ||= {}; plan.unplaced ||= []; plan.resa ||= {}; plan.todo ||= []; plan.places ||= {}; plan.mealOut ||= {};
+  const savePlan = () => store.set("plan", plan);
+
+  const inTokyo = (date) => date >= TRIP.tokyo.from && date <= TRIP.tokyo.to;
+  const inTrip = (date) => date >= TRIP.start && date <= TRIP.end;
+  function baseDay(date) {
+    if (DAYS[date]) return DAYS[date];
+    const w = dow(parse(date));
+    return { m: w >= 5 ? "weekend" : w === 0 || w === 3 ? "kick" : "salle", s: [] };
+  }
+  const sortieIds = (date) => (inTokyo(date) ? [] : (plan.assign[date] ?? baseDay(date).s).filter((id) => SORTIES[id]));
+  const sortiesOf = (date) => sortieIds(date).map((id) => ({ id, ...SORTIES[id] }));
+  const isKick = (date) => !inTokyo(date) && [0, 3].includes(dow(parse(date)));
+  const isGym = (date) => !inTokyo(date) && [1, 2, 4].includes(dow(parse(date))) && !sortiesOf(date).some((s) => s.full || s.morning);
+  const isWeekend = (date) => dow(parse(date)) >= 5;
+  const awayNight = (date) => sortiesOf(date).find((s) => s.night);
+
+  // rotation A → B → C : la n-ième séance de salle depuis le début du séjour
+  function rotationKey(date) {
+    let n = 0;
+    for (let d = parse(TRIP.start); iso(d) < date; d = addDays(d, 1)) if (isGym(iso(d))) n++;
+    return GYM_ROTATION[n % GYM_ROTATION.length];
+  }
+  function plannedSession(date) {
+    if (inTokyo(date)) return "tokyo";
+    if (isKick(date)) return "kick";
+    if (isGym(date)) return rotationKey(date);
+    if (sortiesOf(date).some((s) => s.full)) return "walk";
+    return "rest";
+  }
+  const sessionKeyFor = (date) => (log[date] && log[date].session) || plannedSession(date);
+
+  // repas pris dehors : réglage manuel, sinon d'après les sorties du jour
+  function mealOut(date, slot) {
+    const k = `${date}:${slot}`;
+    if (k in plan.mealOut) return plan.mealOut[k];
+    if (slot === "shaker") return false;
+    if (inTokyo(date)) return true;
+    return sortiesOf(date).some((s) => (s.out || []).includes(slot));
+  }
+  const isBento = (date, slot) => slot === "lunch" && !mealOut(date, slot) && sortiesOf(date).some((s) => s.full);
+  const outCity = (date) => (inTokyo(date) ? "Tokyo" : (sortiesOf(date).find((s) => s.city) || {}).city);
+  const OUT_MACROS = { k: 750, p: 45, c: 80, f: 25 };
+  const OUT_TIPS = [
+    "Teishoku de poisson ou de poulet grillé : le meilleur choix partout.",
+    "Konbini : 2 salad chicken + 1 onigiri + soupe miso, environ 600 kcal et 50 g de protéines.",
+    "Évite karaage, tonkatsu, tempura et les sauces tare ou teriyaki (sucrées).",
+    "Ramen : sans riz ni gyoza, et laisse la moitié du bouillon.",
+    "Demande « gohan sukuname » pour une petite portion de riz.",
+  ];
   // Menu de la semaine : l'entrée WEEKS du lundi, sinon la dernière disponible avant
   const WEEK_KEYS = Object.keys(WEEKS).sort();
   function weekFor(date) {
@@ -83,9 +143,12 @@
       const d = addDays(mon, i);
       const id = iso(d);
       const kind = SESSIONS[sessionKeyFor(id)].kind;
+      const so = sortiesOf(id);
+      const out = inTokyo(id) ? "tokyo" : so.some((s) => s.full) ? "full" : so.length ? "some" : "";
       html += `<button class="day ${id === today ? "today" : ""}" role="tab" data-date="${id}"
         aria-selected="${id === state.date}" aria-label="${DAY_LONG[i]} ${d.getDate()}">
-        <small>${id === today ? "Auj." : DAY_SHORT[i]}</small><b>${d.getDate()}</b><i class="pip ${kind}"></i></button>`;
+        <small>${id === today ? "Auj." : DAY_SHORT[i]}</small><b>${d.getDate()}</b>
+        <span class="pips"><i class="pip ${kind}"></i>${out ? `<i class="pip s-${out}"></i>` : ""}</span></button>`;
     }
     $("#days").innerHTML = html;
   }
@@ -158,7 +221,7 @@
         </button>`;
       });
       body += `</div>`;
-      if (s.kind === "rest") {
+      if (dow(d) === 6 && !awayNight(date) && !inTokyo(date)) {
         body += `<h2 class="section-title">Prépa du dimanche</h2>
           <p class="section-sub">1 h 30 aujourd'hui, et la semaine est facile.</p>`;
         PREP.forEach((p, i) => {
@@ -171,7 +234,13 @@
 
     const pct = total ? Math.round((done / total) * 100) : 0;
     const chips = [`<span class="chip accent">${esc(s.focus)}</span>`];
-    if (s.duration) chips.push(`<span class="chip num">${s.duration} min</span>`);
+    if (s.time) chips.push(`<span class="chip num">${s.time}</span>`);
+    if (s.duration && s.kind !== "kick") chips.push(`<span class="chip num">${s.duration} min</span>`);
+    if (s.kind === "gym" && !overridden) {
+      const idx = GYM_ROTATION.indexOf(key);
+      if (idx >= 0) chips.push(`<span class="chip">Séance ${"ABC"[idx]} de la rotation</span>`);
+    }
+    const daySorties = sortiesOf(date);
     if (s.kind === "gym") chips.push(`<span class="chip num">${s.ex.length} exercices</span>`);
 
     return `
@@ -183,6 +252,7 @@
         ${total ? `<div class="progress"><i style="width:${pct}%"></i></div>
         <div class="progress-label num"><span>${done} / ${total} ${s.kind === "gym" ? "séries" : "fait"}</span><span>${pct} %</span></div>` : ""}
       </section>
+      ${daySorties.length ? `<button class="day-link" data-goto-plan="${date}">${ICON.pin}<span><small>Aujourd'hui</small>${daySorties.map((x) => esc(x.t)).join(" · ")}</span>${ICON.chev}</button>` : ""}
       ${body}
       ${s.kind === "gym" ? `<details class="rules"><summary>Règles de progression ${ICON.down}</summary>
         <ul>${RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>` : ""}
@@ -193,7 +263,7 @@
   function openSwapSheet() {
     const date = state.date;
     const current = sessionKeyFor(date);
-    const planned = SCHEDULE[dow(parse(date))];
+    const planned = plannedSession(date);
     let html = `<h2 class="r-title" style="font-size:24px">Changer la séance</h2>
       <p class="section-sub" style="margin:4px 0 8px">Seulement pour ce ${DAY_LONG[dow(parse(date))].toLowerCase()}.</p>`;
     for (const [k, s] of Object.entries(SESSIONS)) {
@@ -234,7 +304,12 @@
     const L = dayLog(date);
     const meals = dayMeals(date);
     let tot = { k: 0, p: 0, c: 0, f: 0 }, eaten = { k: 0, p: 0, c: 0, f: 0 };
-    meals.forEach((m) => { m.mac = macros(m.r.ing); tot = add(tot, m.mac); if (L.meals[m.slot]) eaten = add(eaten, m.mac); });
+    meals.forEach((m) => {
+      m.out = mealOut(date, m.slot); m.bento = isBento(date, m.slot);
+      m.mac = m.out ? OUT_MACROS : macros(m.r.ing);
+      tot = add(tot, m.mac); if (L.meals[m.slot]) eaten = add(eaten, m.mac);
+    });
+    const city = outCity(date);
     const T = PLAN.targets;
     const bar = (cls, label, v, t) => `<div class="macro"><span>${label} <b class="num">${fmt(v)}</b></span>
       <div class="bar ${cls}"><i style="width:${Math.min(100, (v / t) * 100)}%"></i></div></div>`;
@@ -247,7 +322,7 @@
           <span class="num" style="font-size:13px">objectif ${fmt(T.kcal)} kcal</span></div>
       </section>
       <div class="totals">
-        <div class="kcal-big num">${fmt(anyEaten ? eaten.k : tot.k)}<small>${anyEaten ? `kcal mangées sur ${fmt(tot.k)}` : "kcal prévues"}</small></div>
+        <div class="kcal-big num">${fmt(anyEaten ? eaten.k : tot.k)}<small>${anyEaten ? `kcal mangées sur ${fmt(tot.k)}` : "kcal prévues"}${meals.some((m) => m.out) ? " (estimé)" : ""}</small></div>
         <div class="macros">
           ${bar("p", "Prot.", anyEaten ? eaten.p : tot.p, T.p)}
           ${bar("c", "Gluc.", anyEaten ? eaten.c : tot.c, T.c)}
@@ -259,11 +334,11 @@
           const on = !!L.meals[m.slot];
           return `<li class="meal ${on ? "on" : ""}">
             <button class="check ${on ? "on" : ""}" data-meal="${m.slot}" aria-pressed="${on}" aria-label="Marquer ${MEAL_LABEL[m.slot]} comme mangé">${ICON.check}</button>
-            <button class="meal-open" data-recipe="${m.id}">
+            <button class="meal-open" ${m.out ? `data-out-open="${m.slot}"` : `data-recipe="${m.id}" data-slot="${m.slot}"`}>
               <span class="meal-txt">
-                <span class="meal-when">${MEAL_LABEL[m.slot]}</span>
-                <span class="meal-name" style="display:block">${esc(m.r.name)}</span>
-                ${macroLine(m.mac)}
+                <span class="meal-when">${MEAL_LABEL[m.slot]}${m.bento ? " · à emporter" : ""}${m.out ? ` · dehors${city ? ` (${esc(city)})` : ""}` : ""}</span>
+                <span class="meal-name" style="display:block">${m.out ? "Repas dehors" : esc(m.r.name)}</span>
+                ${m.out ? `<span class="meal-macro num"><b>~${fmt(m.mac.k)} kcal</b><span class="mp">P ~${m.mac.p}</span><span>estimé</span></span>` : macroLine(m.mac)}
               </span>
               <span class="chev">${ICON.chev}</span>
             </button></li>`;
@@ -314,7 +389,19 @@
       }).join("")}`;
   }
 
-  function openRecipe(id, mult = 1) {
+  function openOutSheet(slot) {
+    const date = state.date; const so = sortiesOf(date).filter((s) => s.eat);
+    const city = outCity(date);
+    openSheet(`<div class="jp">${MEAL_LABEL[slot]} · ${DAY_LONG[dow(parse(date))].toLowerCase()} ${parse(date).getDate()}</div>
+      <h2 class="r-title">Repas dehors${city ? ` à ${esc(city)}` : ""}</h2>
+      ${so.map((s) => `<p class="tip"><b>${esc(s.t)}</b> · ${esc(s.eat)}</p>`).join("")}
+      <div class="r-head"><h3>Les bons réflexes</h3></div>
+      <ul class="plain">${OUT_TIPS.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+      <p class="section-sub" style="margin-top:14px">Compté environ ${OUT_MACROS.k} kcal et ${OUT_MACROS.p} g de protéines.</p>
+      <button class="btn ghost" data-meal-out="${slot}">Je mange à la maison finalement</button>`);
+  }
+
+  function openRecipe(id, mult = 1, slot = null) {
     const r = id === "shaker" ? SHAKER : RECIPES[id];
     if (!r) return;
     const m = macros(r.ing, mult);
@@ -344,13 +431,14 @@
       </div>
       <div class="r-head"><h3>Ingrédients</h3>
         ${r.steps ? `<div class="mini-seg" role="group" aria-label="Portions">${[1, 2, 3].map((n) =>
-          `<button data-mult="${n}" data-rid="${id}" aria-pressed="${n === mult}">×${n}</button>`).join("")}</div>` : ""}
+          `<button data-mult="${n}" data-rid="${id}" data-slot="${slot || ""}" aria-pressed="${n === mult}">×${n}</button>`).join("")}</div>` : ""}
       </div>
       <table class="ing"><tbody>${ingRows}</tbody></table>
       ${r.steps ? `<div class="r-head"><h3>Préparation</h3></div>
         <ol class="steps">${r.steps.map((s) => `<li><span>${esc(s)}</span></li>`).join("")}</ol>` : ""}
       ${r.tip ? `<p class="tip"><b>Astuce</b> · ${esc(r.tip)}</p>` : ""}
-      ${id === "shaker" ? `<p class="tip"><b>Quand</b> · juste après la séance. Les jours sans salle, prends-le au goûter : ce sont tes protéines du jour.</p>` : ""}
+      ${id === "shaker" ? `<p class="tip"><b>Quand</b> · juste après la salle ou le kick. Les jours sans sport, prends-le au goûter : ce sont tes protéines du jour.</p>` : ""}
+      ${slot && slot !== "shaker" ? `<button class="btn ghost" data-meal-out="${slot}">Je mange dehors à ce repas</button>` : ""}
     `;
     openSheet(html, !!$("#sheet:not([hidden])"));
   }
@@ -358,16 +446,22 @@
   /* ---------------- COURSES ---------------- */
   function shoppingList(date) {
     const totals = {};
-    weekFor(date).menu.forEach((day) => ["breakfast", "lunch", "dinner"].forEach((slot) => {
-      RECIPES[day[slot]].ing.forEach(([k, g]) => { totals[k] = (totals[k] || 0) + g; });
-    }));
+    const mon = mondayOf(parse(date));
+    let skipped = 0;
+    for (let i = 0; i < 7; i++) {
+      const dt = iso(addDays(mon, i)); const day = menuFor(dt);
+      ["breakfast", "lunch", "dinner"].forEach((slot) => {
+        if (mealOut(dt, slot)) { skipped++; return; }
+        RECIPES[day[slot]].ing.forEach(([k, g]) => { totals[k] = (totals[k] || 0) + g; });
+      });
+    }
     SHAKER.ing.forEach(([k, g]) => { totals[k] = (totals[k] || 0) + g * 7; });
     const groups = {}, pantry = [];
     for (const [k, g] of Object.entries(totals)) {
       if (PANTRY.includes(k)) { pantry.push({ k, g }); continue; }
       (groups[FOODS[k][5]] ||= []).push({ k, g });
     }
-    return { groups, pantry };
+    return { groups, pantry, skipped };
   }
 
   function qtyLabel(k, g) {
@@ -387,7 +481,7 @@
   function renderCourses() {
     const date = state.date;
     const mon = iso(mondayOf(parse(date)));
-    const { groups, pantry } = shoppingList(date);
+    const { groups, pantry, skipped } = shoppingList(date);
     const checked = store.get("shop." + mon, {});
     const have = store.get("pantry", {});
     const order = ["Protéines", "Féculents", "Légumes", "Épicerie", "Sauces"];
@@ -405,7 +499,7 @@
         <h1 class="hero-title">Courses</h1>
         <div class="hero-meta"><span class="chip accent num">${nDone} / ${all.length} cochés</span>
           ${nDone ? `<button class="chip" data-action="shop-reset">Tout décocher</button>` : ""}</div>
-        <p class="section-sub" style="margin:12px 0 0">Pour les 7 jours de cette semaine uniquement. Coche ce que tu achètes <b style="color:var(--text)">ou ce qu'il te reste déjà</b> de la semaine d'avant. La liste repart à zéro chaque lundi.</p>
+        <p class="section-sub" style="margin:12px 0 0">Pour les repas faits maison de cette semaine${skipped ? ` (${skipped} repas dehors retirés)` : ""}. Coche ce que tu achètes <b style="color:var(--text)">ou ce qu'il te reste déjà</b> de la semaine d'avant. La liste repart à zéro chaque lundi.</p>
       </section>
       <details class="rules" style="margin-top:4px"><summary>Les plats de la semaine ${ICON.down}</summary>
         <ul class="wk-mini">${menu.map((m, i) => `<li><b>${DAY_SHORT[i]}</b>${["breakfast", "lunch", "dinner"].map((s) =>
@@ -422,6 +516,279 @@
       </details>
       <p class="note">Poisson cru : achète-le le jour même (vendredi). Gyomu Super et Trial pour le volume, AEON pour le poisson.</p>
     `;
+  }
+
+  /* ---------------- PLANNING ---------------- */
+  const mapsSearch = (q) => `https://maps.apple.com/?q=${encodeURIComponent(q)}`;
+  const mapsGo = (q) => `https://maps.apple.com/?daddr=${encodeURIComponent(q)}&dirflg=r`;
+  const dateLabel = (date, long = false) => { const d = parse(date); return `${(long ? DAY_LONG : DAY_SHORT)[dow(d)]}${long ? "" : "."} ${d.getDate()} ${long ? MONTHS[d.getMonth()] : MONTHS[d.getMonth()].slice(0, 4) + "."}`; };
+  const MTYPE = {
+    kick: "Kick 12h–13h", salle: "Salle 10h–11h30", journee: "Journée 9h–17h", weekend: "Week-end", matin: "Matinée sumo", tokyo: "Tokyo",
+  };
+
+  function placeRows(places) {
+    if (!places || !places.length) return "";
+    return `<ul class="places">${places.map(([name, q]) => `<li>
+      <span class="place-name">${esc(name)}<small>${esc(q)}</small></span>
+      <a class="map-btn icon" href="${mapsSearch(q)}" target="_blank" rel="noopener" aria-label="Voir ${esc(name)} dans Plans">${ICON.pin}</a>
+      <a class="map-btn go" href="${mapsGo(q)}" target="_blank" rel="noopener" aria-label="Itinéraire en transports vers ${esc(name)}">${ICON.route}Y aller</a>
+    </li>`).join("")}</ul>`;
+  }
+
+  function sortieWhen(date, s) {
+    if (s.morning) return "Matin";
+    if (s.evening) return "Soir";
+    if (inTokyo(date)) return "";
+    if (isKick(date)) return "13h30";
+    if (isWeekend(date)) return "Journée";
+    if (s.full) return "9h–17h";
+    return "Aprèm";
+  }
+
+  function sortieCard(date, s, isMain = false) {
+    const done = plan.done[s.id] === date;
+    const tags = [];
+    if (s.pass) tags.push(`<span class="tag pass">${esc(s.pass)}</span>`);
+    if (s.night) tags.push(`<span class="tag night">Nuit à ${esc(s.night)}</span>`);
+    else if (s.city) tags.push(`<span class="tag">${esc(s.city)}</span>`);
+    return `<article class="sortie ${done ? "done" : ""}">
+      ${tags.length ? `<div class="sortie-top">${tags.join("")}</div>` : ""}
+      ${isMain ? "" : `<h3>${esc(s.t)}</h3>`}
+      <p class="sortie-d">${esc(s.d)}</p>
+      ${s.go ? `<p class="sortie-line">${ICON.train}<span>${esc(s.go)}</span></p>` : ""}
+      ${s.tip ? `<p class="sortie-line">${ICON.info}<span>${esc(s.tip)}</span></p>` : ""}
+      ${s.eat && (s.out || []).length ? `<p class="sortie-line">${ICON.bowl}<span>${esc(s.eat)}</span></p>` : ""}
+      ${placeRows(s.p)}
+      <div class="sortie-actions">
+        <button class="act ${done ? "on" : ""}" data-sortie-done="${s.id}">${ICON.check}${done ? "Faite" : "Marquer faite"}</button>
+        <button class="act" data-sortie-move="${s.id}">${ICON.swap}Déplacer</button>
+        <button class="act ghost" data-sortie-remove="${s.id}" aria-label="Retirer ${esc(s.t)} de ce jour">${ICON.x}</button>
+      </div>
+    </article>`;
+  }
+
+  function renderPlanning() {
+    const seg = state.planSeg;
+    const segs = [["jour", "Jour"], ["global", "Global"], ["resa", "À réserver"], ["infos", "Infos"]];
+    const segHtml = `<div class="seg" role="group" aria-label="Affichage">${segs.map(([k, l]) =>
+      `<button data-plan-seg="${k}" aria-pressed="${seg === k}">${l}</button>`).join("")}</div>`;
+    if (seg === "global") return segHtml + renderGlobal();
+    if (seg === "resa") return segHtml + renderResa();
+    if (seg === "infos") return segHtml + renderInfos();
+    return segHtml + renderPlanDay();
+  }
+
+  function renderPlanDay() {
+    const date = state.date; const d = parse(date);
+    const so = sortiesOf(date);
+    const base = baseDay(date);
+    const tokyo = inTokyo(date);
+    const month = TRIP.months[d.getMonth()];
+    const kind = tokyo ? "tokyo" : isKick(date) ? "kick" : isGym(date) ? "salle" : isWeekend(date) ? "weekend" : so.some((s) => s.morning) ? "matin" : so.some((s) => s.full) ? "journee" : "";
+    const main = so.find((s) => !s.evening) || so[0];
+    const title = tokyo ? "Tokyo" : main ? main.t : "Journée libre";
+    const chips = [];
+    if (MTYPE[kind]) chips.push(`<span class="chip accent">${MTYPE[kind]}</span>`);
+    if (base.ferie) chips.push(`<span class="chip">Férié</span>`);
+    if (!inTrip(date)) chips.push(`<span class="chip">Hors séjour</span>`);
+
+    const rows = [];
+    const sk = sessionKeyFor(date); const sess = SESSIONS[sk];
+    so.filter((s) => s.morning).forEach((s) => rows.push({ t: "Matin", html: sortieCard(date, s, s === main) }));
+    if (sess.kind === "gym") rows.push({ t: "10h", html: `<button class="slot gym" data-goto-tab="salle"><span><b>${esc(sess.name)}</b><small>Salle 10h–11h30 · ouvrir la séance</small></span>${ICON.chev}</button>` });
+    if (sess.kind === "kick") rows.push({ t: "12h", html: `<button class="slot kick" data-goto-tab="salle"><span><b>Kick-boxing</b><small>12h–13h · shaker juste après</small></span>${ICON.chev}</button>` });
+    if (tokyo) rows.push({ t: "", html: `<div class="slot tokyo"><span><b>Tokyo, du 27 oct. au 4 nov.</b><small>Marche beaucoup, repas dehors. Si tu peux rentrer le 3 nov. à midi : dernier soir des illuminations des temples de Gion (17h30–21h) et montgolfières illuminées à Saga (à vérifier).</small></span></div>` });
+    so.filter((s) => !s.morning && !s.evening).forEach((s) => rows.push({ t: sortieWhen(date, s), html: sortieCard(date, s, s === main) }));
+    if (dow(d) < 5 && !tokyo && !awayNight(date) && inTrip(date)) rows.push({ t: "17h", html: `<div class="slot work"><span><b>Travail</b><small>17h/18h–20h · facultatif, une belle sortie passe avant</small></span></div>` });
+    if (dow(d) === 4 && !tokyo && inTrip(date)) rows.push({ t: "Soir", html: `<div class="slot faint"><span><b>Kick du vendredi soir</b><small>Une semaine sur deux</small></span></div>` });
+    so.filter((s) => s.evening).forEach((s) => rows.push({ t: "Soir", html: sortieCard(date, s, s === main) }));
+
+    const note = plan.notes[date] || "";
+    return `
+      <section class="hero">
+        <div class="hero-day"><span>${DAY_LONG[dow(d)]} ${d.getDate()} ${MONTHS[d.getMonth()]}</span>${month ? `<span style="font-size:13px">${esc(month.name)}</span>` : ""}</div>
+        <h1 class="hero-title ${title.length > 10 ? "long" : ""}">${esc(title)}</h1>
+        <div class="hero-meta">${chips.join("")}</div>
+      </section>
+      <ol class="timeline">${rows.map((r) => `<li><span class="tl-time">${esc(r.t)}</span><div class="tl-body">${r.html}</div></li>`).join("")}</ol>
+      ${tokyo ? "" : `<button class="add-sortie" data-sortie-add="${date}">${ICON.plus}Ajouter une sortie</button>`}
+      <h2 class="section-title">Mes notes</h2>
+      <textarea class="notes" data-note="${date}" placeholder="Horaires de bus, dernier retour, une idée…" rows="3">${esc(note)}</textarea>
+    `;
+  }
+
+  function openMoveSheet(id) {
+    const from = state.date;
+    const start = todayIso() > TRIP.start ? todayIso() : TRIP.start;
+    let html = `<h2 class="r-title" style="font-size:24px">Déplacer « ${esc(SORTIES[id].t)} »</h2>
+      <p class="section-sub" style="margin:4px 0 10px">Choisis le jour. Ses sorties à lui prennent la place libérée (celles du soir restent).</p>`;
+    for (let d = parse(start); iso(d) <= TRIP.end; d = addDays(d, 1)) {
+      const dt = iso(d); if (dt === from || inTokyo(dt)) continue;
+      const so = sortiesOf(dt);
+      html += `<button class="sheet-option" data-move-to="${dt}" data-mid="${id}">
+        <span class="opt-date">${dateLabel(dt)}<small>${isKick(dt) ? "kick" : isGym(dt) ? "salle" : isWeekend(dt) ? "week-end" : ""}</small></span>
+        <small class="ellip">${so.length ? so.map((s) => esc(s.t)).join(" · ") : "libre"}</small></button>`;
+    }
+    openSheet(html);
+  }
+
+  function openAddSheet(date) {
+    const placed = new Set();
+    for (let d = parse(TRIP.start); iso(d) <= TRIP.end; d = addDays(d, 1)) sortieIds(iso(d)).forEach((x) => placed.add(x));
+    const unplaced = plan.unplaced.filter((x) => SORTIES[x] && !placed.has(x));
+    const groups = {};
+    Object.entries(SORTIES).filter(([k, s]) => s.b && !placed.has(k)).forEach(([k, s]) => (groups[s.b] ||= []).push([k, s]));
+    const opt = ([k, s]) => `<button class="sheet-option" data-add-pick="${k}"><span>${esc(s.t)}<small style="display:block">${esc(s.d)}</small></span>${ICON.plus}</button>`;
+    openSheet(`<h2 class="r-title" style="font-size:24px">Ajouter au ${dateLabel(date, true).toLowerCase()}</h2>
+      ${unplaced.length ? `<div class="r-head"><h3>À recaser</h3></div>${unplaced.map((k) => opt([k, SORTIES[k]])).join("")}` : ""}
+      ${Object.entries(groups).map(([g, items]) => `<div class="r-head"><h3>${esc(g)}</h3></div>${items.map(opt).join("")}`).join("")}`);
+  }
+
+  function renderGlobal() {
+    const d0 = parse(state.date);
+    const m = state.calMonth ?? (inTrip(state.date) ? d0.getMonth() : 9);
+    const year = 2026;
+    const days = new Date(year, m + 1, 0).getDate();
+    const lead = dow(new Date(year, m, 1));
+    const info = TRIP.months[m];
+    const today = todayIso();
+    let cells = "";
+    for (let i = 0; i < lead; i++) cells += `<span class="cal-cell empty"></span>`;
+    for (let i = 1; i <= days; i++) {
+      const dt = iso(new Date(year, m, i));
+      const so = sortiesOf(dt);
+      const cls = !inTrip(dt) ? "off" : inTokyo(dt) ? "tokyo" : so.some((s) => s.night) ? "night" : so.some((s) => s.full) ? "full" : so.length ? "some" : "free";
+      const sport = !inTrip(dt) ? "" : isKick(dt) ? "k" : isGym(dt) ? "s" : "";
+      const allDone = so.length && so.every((s) => plan.done[s.id] === dt);
+      cells += `<button class="cal-cell ${cls} ${dt === today ? "today" : ""}" data-goto-day="${dt}" aria-label="${dateLabel(dt, true)}">
+        <b class="num">${i}</b>${sport ? `<i class="sp sp-${sport}"></i>` : ""}${allDone ? `<span class="cal-done">${ICON.check}</span>` : ""}</button>`;
+    }
+    let agenda = "", curWeek = "";
+    for (let i = 1; i <= days; i++) {
+      const dt = iso(new Date(year, m, i));
+      if (!inTrip(dt)) continue;
+      const wk = iso(mondayOf(parse(dt)));
+      if (wk !== curWeek) { curWeek = wk; agenda += `<li class="ag-week">Semaine du ${weekRange(dt)}</li>`; }
+      const so = sortiesOf(dt);
+      const sp = inTokyo(dt) ? "" : isKick(dt) ? `<span class="mini k">Kick</span>` : isGym(dt) ? `<span class="mini s">Salle</span>` : "";
+      agenda += `<li><button class="ag-row ${dt === today ? "today" : ""}" data-goto-day="${dt}">
+        <span class="ag-date"><b>${DAY_SHORT[dow(parse(dt))]}</b><span class="num">${i}</span></span>
+        <span class="ag-main">${inTokyo(dt) ? "<em>Tokyo</em>" : so.length ? so.map((s) => `<span class="${plan.done[s.id] === dt ? "ag-done" : ""}">${esc(s.t)}</span>`).join("") : "<em>Libre</em>"}</span>
+        <span class="ag-side">${sp}${so.some((s) => s.pass) ? `<span class="mini p">Pass</span>` : ""}${so.some((s) => s.night) ? `<span class="mini n">Nuit</span>` : ""}</span>
+      </button></li>`;
+    }
+    const evs = EVENTS.filter((e) => parse(e.from).getMonth() === m);
+    return `
+      <div class="month-nav">${[9, 10, 11].map((mm) => `<button data-cal-month="${mm}" aria-pressed="${mm === m}">${TRIP.months[mm].name}</button>`).join("")}</div>
+      <section class="hero" style="padding-top:8px">
+        <h1 class="hero-title">${info.name}</h1>
+        <p class="section-sub" style="margin:0">${esc(info.theme)}. ${esc(info.intro)}</p>
+      </section>
+      <div class="cal">
+        ${["L", "M", "M", "J", "V", "S", "D"].map((x) => `<span class="cal-h">${x}</span>`).join("")}
+        ${cells}
+      </div>
+      <div class="legend">
+        <span><i class="lg full"></i>Journée</span><span><i class="lg some"></i>Sortie</span><span><i class="lg night"></i>Nuit ailleurs</span>
+        <span><i class="lg tokyo"></i>Tokyo</span><span><i class="sp sp-k"></i>Kick</span><span><i class="sp sp-s"></i>Salle</span>
+      </div>
+      ${evs.length ? `<h2 class="section-title">Dates clés</h2><ul class="events">${evs.map((e) => `<li class="${e.missed ? "missed" : ""}">
+        <span class="ev-when">${esc(e.when)}</span><span><b>${esc(e.what)}</b>${e.where ? `<small>${esc(e.where)}</small>` : ""}</span></li>`).join("")}</ul>` : ""}
+      <h2 class="section-title">Agenda</h2>
+      <ul class="agenda">${agenda}</ul>
+    `;
+  }
+
+  function renderResa() {
+    const today = todayIso();
+    const items = [...BOOKINGS].sort((a, b) => a.for.localeCompare(b.for));
+    const nDone = items.filter((b) => plan.resa[b.id]).length;
+    const left = (dt) => { const n = Math.round((parse(dt) - parse(today)) / 864e5); return n < 0 ? "passé" : n === 0 ? "aujourd'hui" : `dans ${n} j`; };
+    return `
+      <section class="hero">
+        <h1 class="hero-title">À réserver</h1>
+        <div class="progress"><i style="width:${(nDone / items.length) * 100}%"></i></div>
+        <div class="progress-label num"><span>${nDone} / ${items.length} réservé</span></div>
+      </section>
+      ${items.map((b) => {
+        const on = !!plan.resa[b.id];
+        const urgent = !on && (parse(b.for) - parse(today)) / 864e5 <= 14;
+        return `<button class="block resa ${on ? "on" : ""}" data-resa="${b.id}" aria-pressed="${on}">
+          <span class="check">${ICON.check}</span>
+          <span class="block-main"><span class="block-title">${esc(b.what)}</span>
+          <span class="block-sub"><span class="${urgent ? "urgent" : ""}">Pour le ${dateLabel(b.for).toLowerCase()}, ${left(b.for)}</span>${b.cost ? `<br>${esc(b.cost)}` : ""}</span></span>
+        </button>`;
+      }).join("")}
+      <h2 class="section-title">Ma check-list</h2>
+      <p class="section-sub">Ce que tu ne veux pas oublier : à acheter, à vérifier, à préparer.</p>
+      <form class="todo-add" id="todoForm"><input id="todoIn" type="text" placeholder="Ex. recharger la SUGOCA" aria-label="Nouvel élément"><button class="btn" type="submit" aria-label="Ajouter">${ICON.plus}</button></form>
+      <div class="todo-list">${plan.todo.map((t, i) => `<div class="todo-row ${t.done ? "on" : ""}">
+        <button class="check ${t.done ? "on" : ""}" data-todo="${i}" aria-pressed="${!!t.done}" aria-label="Cocher">${ICON.check}</button>
+        <span class="block-title">${esc(t.text)}</span>
+        <button class="todo-del" data-todo-del="${i}" aria-label="Supprimer">${ICON.x}</button></div>`).join("")}</div>
+    `;
+  }
+
+  function renderInfos() {
+    const pl = plan.places;
+    const myPlace = (k, label, ph) => `<div class="myplace">
+      <label><span>${label}</span><input type="text" data-place="${k}" value="${esc(pl[k] || "")}" placeholder="${ph}"></label>
+      ${pl[k] ? `<div class="myplace-btns"><a class="map-btn" href="${mapsSearch(pl[k])}" target="_blank" rel="noopener">${ICON.pin}Plans</a><a class="map-btn go" href="${mapsGo(pl[k])}" target="_blank" rel="noopener">${ICON.route}Y aller</a></div>` : ""}
+    </div>`;
+    return `
+      <section class="hero"><h1 class="hero-title">Infos</h1></section>
+      <h2 class="section-title" style="margin-top:0">Mes lieux</h2>
+      <p class="section-sub">Le nom ou l'adresse de ta salle et de ton club, pour avoir les boutons Plans.</p>
+      ${myPlace("gym", "Salle de sport", "Nom ou adresse")}
+      ${myPlace("kick", "Club de kick-boxing", "Nom ou adresse")}
+      <details class="rules" open><summary>Le rythme ${ICON.down}</summary><ul>${TRIP_RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
+      <details class="rules"><summary>Transports et SUGOCA ${ICON.down}</summary><ul>${TRANSPORT.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
+      <details class="rules"><summary>Pass JR Kyushu ${ICON.down}</summary>
+        <table class="ctable"><thead><tr><th>Pass</th><th>Prix</th><th>Sans</th></tr></thead><tbody>
+        ${PASSES.map((p) => `<tr><td><b>${esc(p.name)}</b><small>${esc(p.days)} · ${esc(p.covers)}</small></td><td class="num">${esc(p.price)}</td><td class="num">${esc(p.without)}</td></tr>`).join("")}
+        </tbody></table>
+        <ul>${PASS_NOTES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
+      ${COSTS.map((g) => `<details class="rules"><summary>Budget : ${esc(g.group.toLowerCase())} ${ICON.down}</summary>
+        <table class="ctable"><tbody>${g.rows.map(([a, b, c]) => `<tr><td>${esc(a)}${c ? `<small>${esc(c)}</small>` : ""}</td><td class="num">${esc(b)}</td></tr>`).join("")}</tbody></table></details>`).join("")}
+      <p class="disclaimer">Prix en yens par personne, à vérifier avant d'acheter.</p>
+    `;
+  }
+
+  function handlePlanClick(el, ds) {
+    const rerender = () => { const y = window.scrollY; render(); window.scrollTo(0, y); };
+    if (ds.planSeg) { state.planSeg = ds.planSeg; store.set("planSeg", ds.planSeg); render(true); return true; }
+    if (ds.gotoTab) { goTab(ds.gotoTab); return true; }
+    if (ds.gotoPlan) { state.planSeg = "jour"; store.set("planSeg", "jour"); goTab("planning"); return true; }
+    if (ds.gotoDay) { state.planSeg = "jour"; store.set("planSeg", "jour"); state.date = ds.gotoDay; window.scrollTo({ top: 0 }); render(true); return true; }
+    if (ds.calMonth) { state.calMonth = Number(ds.calMonth); render(); return true; }
+    if (ds.sortieDone) {
+      const id = ds.sortieDone; if (plan.done[id] === state.date) delete plan.done[id]; else plan.done[id] = state.date;
+      savePlan(); rerender(); if (plan.done[id]) toast("Sortie faite"); return true;
+    }
+    if (ds.sortieMove) { openMoveSheet(ds.sortieMove); return true; }
+    if (ds.moveTo) {
+      const id = ds.mid, from = state.date, to = ds.moveTo;
+      const fromList = sortieIds(from), toList = sortieIds(to);
+      const toMoving = toList.filter((x) => !SORTIES[x].evening);
+      plan.assign[from] = [...fromList.filter((x) => x !== id), ...toMoving];
+      plan.assign[to] = [...toList.filter((x) => SORTIES[x].evening), id];
+      savePlan(); closeSheet(); render(); toast(`Déplacée au ${dateLabel(to).toLowerCase()}`); return true;
+    }
+    if (ds.sortieRemove) {
+      const id = ds.sortieRemove; plan.assign[state.date] = sortieIds(state.date).filter((x) => x !== id);
+      if (!plan.unplaced.includes(id)) plan.unplaced.push(id);
+      savePlan(); rerender(); toast("Retirée, à recaser via « Ajouter »"); return true;
+    }
+    if (ds.sortieAdd) { openAddSheet(ds.sortieAdd); return true; }
+    if (ds.addPick) {
+      const id = ds.addPick; plan.assign[state.date] = [...sortieIds(state.date), id];
+      plan.unplaced = plan.unplaced.filter((x) => x !== id);
+      savePlan(); closeSheet(); render(); toast("Sortie ajoutée"); return true;
+    }
+    if (ds.resa) { plan.resa[ds.resa] = !plan.resa[ds.resa]; savePlan(); rerender(); return true; }
+    if (ds.todo) { const t = plan.todo[Number(ds.todo)]; t.done = !t.done; savePlan(); rerender(); return true; }
+    if (ds.todoDel) { plan.todo.splice(Number(ds.todoDel), 1); savePlan(); rerender(); return true; }
+    return false;
   }
 
   /* ---------------- COMPLÉMENTS ---------------- */
@@ -584,12 +951,13 @@
     const w = weights(); const wz = waists();
     const lines = [`BILAN ${weekTitle(state.date)} (plan ${PLAN.version}) — semaine du ${mon.getDate()}/${mon.getMonth() + 1}`];
     const dayVals = [];
-    let gymDone = 0, gymPlanned = 0, mealsDone = 0, cardioDone = 0, suppDone = 0;
+    let gymDone = 0, gymPlanned = 0, mealsDone = 0, cardioDone = 0, suppDone = 0, kickDone = 0;
     const lifts = {};
     for (let i = 0; i < 7; i++) {
       const dt = iso(addDays(mon, i));
       if (w[dt]) dayVals.push(`${DAY_SHORT[i]} ${fmt(w[dt], 1)}`);
       const key = sessionKeyFor(dt); const s = SESSIONS[key]; const L = log[dt];
+      if (s.kind === "kick" && L && Object.values(L.extra).some(Boolean)) kickDone++;
       if (s.kind === "gym") {
         gymPlanned++;
         const setsDone = L ? s.ex.reduce((a, e, j) => a + ((L.sets[`${key}:${j}`] || []).filter(Boolean).length), 0) : 0;
@@ -605,8 +973,10 @@
     lines.push(`Moyenne : ${a ? fmt(a, 1) + " kg" : "—"}${p ? ` (semaine d'avant ${fmt(p, 1)} kg, ${a ? (a - p > 0 ? "+" : "") + fmt(a - p, 1) : "?"} kg)` : ""}`);
     const wzE = Object.entries(wz).sort(([x], [y]) => x.localeCompare(y));
     if (wzE.length) lines.push(`Tour de taille : ${fmt(wzE[wzE.length - 1][1], 1)} cm`);
-    lines.push(`Séances muscu complètes : ${gymDone}/${gymPlanned} · cardio : ${cardioDone}`);
+    lines.push(`Séances muscu complètes : ${gymDone}/${gymPlanned} · kick : ${kickDone} · cardio : ${cardioDone}`);
     lines.push(`Repas cochés : ${mealsDone}/28`);
+    const sortiesWeek = []; for (let i = 0; i < 7; i++) sortiesOf(iso(addDays(mon, i))).forEach((s) => sortiesWeek.push(s));
+    if (sortiesWeek.length) lines.push(`Sorties faites : ${sortiesWeek.filter((s) => plan.done[s.id]).length}/${sortiesWeek.length}`);
     lines.push(`Compléments pris : ${suppDone}/${SUPPLEMENTS.reduce((a, s) => a + s.take.length, 0) * 7}`);
     if (Object.keys(lifts).length) lines.push("Charges : " + Object.entries(lifts).map(([n, v]) => `${n} ${v} kg`).join(" ; "));
     lines.push("Ressenti (faim, énergie, sommeil) : ");
@@ -692,7 +1062,7 @@
     document.querySelectorAll(".tab").forEach((t) => { if (t.dataset.tab === state.tab) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current"); });
     renderDays();
     const v = $("#view");
-    const views = { salle: renderSalle, repas: renderRepas, courses: renderCourses, compl: renderCompl, suivi: renderSuivi };
+    const views = { planning: renderPlanning, salle: renderSalle, repas: renderRepas, courses: renderCourses, compl: renderCompl, suivi: renderSuivi };
     v.innerHTML = views[state.tab]();
     if (animate) { v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); }
   }
@@ -700,6 +1070,7 @@
   function setDate(date, animate = true) { state.date = date; render(animate); }
 
   /* ---------------- events ---------------- */
+  function goTab(tab) { state.tab = tab; store.set("tab", tab); window.scrollTo({ top: 0 }); render(true); }
   $("#tabs").addEventListener("click", (e) => {
     const t = e.target.closest("[data-tab]"); if (!t) return;
     state.tab = t.dataset.tab; store.set("tab", state.tab);
@@ -710,7 +1081,7 @@
   $("#nextWeek").addEventListener("click", () => setDate(iso(addDays(parse(state.date), 7))));
 
   document.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-set],[data-toggle-cue],[data-extra],[data-meal],[data-recipe],[data-seg],[data-shop],[data-action],[data-pick-session],[data-mult],[data-del-weight],[data-pantry],[data-date-go],[data-supp],[data-supp-open],[data-jar]");
+    const el = e.target.closest("[data-set],[data-toggle-cue],[data-extra],[data-meal],[data-recipe],[data-seg],[data-shop],[data-action],[data-pick-session],[data-mult],[data-del-weight],[data-pantry],[data-date-go],[data-supp],[data-supp-open],[data-jar],[data-plan-seg],[data-goto-plan],[data-goto-day],[data-sortie-done],[data-sortie-move],[data-move-to],[data-sortie-remove],[data-sortie-add],[data-add-pick],[data-resa],[data-todo],[data-todo-del],[data-cal-month],[data-out-open],[data-meal-out],[data-goto-tab]");
     if (!el) return;
     const ds = el.dataset;
 
@@ -757,8 +1128,14 @@
       const y = window.scrollY; render(); window.scrollTo(0, y); return;
     }
     if (ds.dateGo) { state.repasSeg = "jour"; store.set("repasSeg", "jour"); setDate(ds.dateGo); window.scrollTo({ top: 0 }); return; }
-    if (ds.mult) { openRecipe(ds.rid, Number(ds.mult)); return; }
-    if (ds.recipe) { openRecipe(ds.recipe); return; }
+    if (ds.mult) { openRecipe(ds.rid, Number(ds.mult), ds.slot || null); return; }
+    if (ds.recipe) { openRecipe(ds.recipe, 1, ds.slot || null); return; }
+    if (ds.outOpen) { openOutSheet(ds.outOpen); return; }
+    if (ds.mealOut) {
+      const k = `${state.date}:${ds.mealOut}`; plan.mealOut[k] = !mealOut(state.date, ds.mealOut); savePlan();
+      closeSheet(); render(); toast(plan.mealOut[k] ? "Repas dehors" : "Repas à la maison"); return;
+    }
+    if (handlePlanClick(el, ds)) return;
     if (ds.seg) { state.repasSeg = ds.seg; store.set("repasSeg", ds.seg); render(true); return; }
     if (ds.shop) {
       const key = "shop." + iso(mondayOf(parse(state.date)));
@@ -799,7 +1176,17 @@
     }
   });
 
+  document.addEventListener("input", (e) => {
+    if (e.target.matches("[data-note]")) { plan.notes[e.target.dataset.note] = e.target.value; savePlan(); }
+  });
+  document.addEventListener("submit", (e) => {
+    if (e.target.id !== "todoForm") return;
+    e.preventDefault();
+    const v = $("#todoIn").value.trim(); if (!v) return;
+    plan.todo.push({ text: v, done: false }); savePlan(); render(); $("#todoIn").focus();
+  });
   document.addEventListener("change", (e) => {
+    if (e.target.matches("[data-place]")) { plan.places[e.target.dataset.place] = e.target.value.trim(); savePlan(); render(); return; }
     const inp = e.target.closest("[data-kg]"); if (!inp) return;
     const L = dayLog(state.date); const v = parseFloat(String(inp.value).replace(",", "."));
     if (v) L.kg[inp.dataset.kg] = v; else delete L.kg[inp.dataset.kg];

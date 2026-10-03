@@ -1,6 +1,6 @@
 // Réseau d'abord (pour recevoir les mises à jour du plan), cache si hors ligne.
-const CACHE = "seche-v3";
-const ASSETS = ["./", "index.html", "style.css", "app.js", "data.js", "manifest.webmanifest", "icons/icon.svg"];
+const CACHE = "seche-v4";
+const ASSETS = ["./", "index.html", "style.css", "app.js", "data.js", "manifest.webmanifest", "icons/icon.svg", "trip.js"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));

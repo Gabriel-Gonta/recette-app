@@ -406,91 +406,96 @@ window.WEEKS = {
 
 window.SHAKER = { name: "Shaker whey à l'eau", ing: [["whey", 30]] };
 
-/* ---------- Programme salle ---------- */
+/* ---------- Programme sport ----------
+   Salle : 3 séances full body en rotation A → B → C, placées
+   automatiquement les mar/mer/ven sans grande sortie (10h–11h30).
+   Kick-boxing : lundi et jeudi 12h–13h.                        */
 window.SESSIONS = {
-  upperA: {
-    name: "Haut A", focus: "Force", kind: "gym", duration: 70,
-    ex: [
-      { n: "Développé couché barre", s: 4, r: "5-6", rest: 180, cue: "Omoplates serrées, pieds ancrés, barre au bas des pecs." },
-      { n: "Tractions lestées", s: 4, r: "6-8", rest: 150, cue: "Ou tirage vertical lourd. Poitrine vers la barre, pas de balancier." },
-      { n: "Développé militaire debout", s: 3, r: "6-8", rest: 150, cue: "Fessiers et abdos serrés, la tête passe sous la barre." },
-      { n: "Rowing barre", s: 3, r: "8", rest: 120, cue: "Buste à 45°, tire vers le nombril." },
-      { n: "Dips", s: 3, r: "8-10", rest: 120, cue: "Buste légèrement penché, descends jusqu'à 90°." },
-      { n: "Curl incliné + extension triceps poulie", s: 3, r: "10-12", rest: 75, cue: "Superset : enchaîne les deux, repos après." },
-      { n: "Face pull", s: 3, r: "15", rest: 60, cue: "Coudes hauts, écarte la corde au niveau du front." },
-    ],
-    cardio: "Marche inclinée 20 min — 12 %, 5 km/h",
-  },
-  lowerA: {
-    name: "Bas A", focus: "Force", kind: "gym", duration: 65,
+  fbA: {
+    name: "Full body A", focus: "Force", kind: "gym", duration: 80, time: "10h–11h30",
     ex: [
       { n: "Squat barre", s: 4, r: "5-6", rest: 180, cue: "Gainage avant de descendre, genoux dans l'axe des pieds." },
-      { n: "Soulevé de terre roumain", s: 3, r: "8", rest: 150, cue: "Hanches vers l'arrière, barre collée aux cuisses, dos neutre." },
+      { n: "Développé couché barre", s: 4, r: "5-6", rest: 180, cue: "Omoplates serrées, pieds ancrés, barre au bas des pecs." },
+      { n: "Rowing barre", s: 4, r: "6-8", rest: 120, cue: "Buste à 45°, tire vers le nombril." },
       { n: "Fentes bulgares haltères", s: 3, r: "8-10 / jambe", rest: 90, cue: "Buste droit pour les quadris, penché pour les fessiers." },
-      { n: "Leg curl allongé", s: 3, r: "10-12", rest: 75, cue: "Contrôle la descente sur 2 secondes." },
-      { n: "Mollets debout", s: 4, r: "10-12", rest: 60, cue: "Pause d'une seconde en bas, étirement complet." },
+      { n: "Face pull", s: 3, r: "15", rest: 60, cue: "Coudes hauts, écarte la corde au niveau du front. Protège tes épaules pour la boxe." },
+      { n: "Pallof press", s: 3, r: "10 / côté", rest: 45, cue: "Anti-rotation : le tronc ne bouge pas. Utile pour les coups." },
+    ],
+    cardio: "Finisher : 8 min de vélo, 20 s fort / 40 s léger",
+  },
+  fbB: {
+    name: "Full body B", focus: "Force", kind: "gym", duration: 80, time: "10h–11h30",
+    ex: [
+      { n: "Soulevé de terre", s: 3, r: "4-5", rest: 180, cue: "Classique ou trap bar. Pousse le sol, verrouille avec les fessiers." },
+      { n: "Développé militaire debout", s: 4, r: "6-8", rest: 150, cue: "Fessiers et abdos serrés, la tête passe sous la barre." },
+      { n: "Tractions lestées", s: 4, r: "6-8", rest: 150, cue: "Ou tirage vertical lourd. Poitrine vers la barre, pas de balancier." },
+      { n: "Presse à cuisses", s: 3, r: "10-12", rest: 120, cue: "Amplitude complète, pas de verrouillage des genoux." },
+      { n: "Dips", s: 3, r: "8-10", rest: 90, cue: "Buste légèrement penché, descends jusqu'à 90°." },
       { n: "Relevés de jambes suspendu", s: 3, r: "10-15", rest: 60, cue: "Enroule le bassin, pas d'élan." },
+    ],
+    cardio: "Finisher : 8 min de rameur, 20 s fort / 40 s léger",
+  },
+  fbC: {
+    name: "Full body C", focus: "Volume", kind: "gym", duration: 75, time: "10h–11h30",
+    ex: [
+      { n: "Hack squat ou front squat", s: 3, r: "8-10", rest: 120, cue: "Descente contrôlée sur 2 secondes." },
+      { n: "Développé incliné haltères", s: 4, r: "8-10", rest: 120, cue: "Banc à 30°, descends jusqu'à l'étirement des pecs." },
+      { n: "Rowing poitrine appuyée", s: 4, r: "10", rest: 90, cue: "Pause d'une seconde omoplates serrées." },
+      { n: "Hip thrust", s: 3, r: "10", rest: 90, cue: "Menton rentré, pause en haut 1 seconde." },
+      { n: "Élévations latérales", s: 3, r: "12-15", rest: 60, cue: "Léger, strict, montée jusqu'aux épaules." },
+      { n: "Leg curl + curl marteau", s: 3, r: "12", rest: 60, cue: "Superset : enchaîne les deux, repos après." },
+      { n: "Roue abdominale", s: 3, r: "10", rest: 60, cue: "Bassin rétroversé, ne creuse pas le dos." },
     ],
     cardio: null,
   },
-  upperB: {
-    name: "Haut B", focus: "Volume", kind: "gym", duration: 70,
-    ex: [
-      { n: "Développé incliné haltères", s: 4, r: "8-10", rest: 120, cue: "Banc à 30°, descends jusqu'à l'étirement des pecs." },
-      { n: "Rowing poitrine appuyée", s: 4, r: "10", rest: 90, cue: "Pause d'une seconde omoplates serrées." },
-      { n: "Tirage vertical prise neutre", s: 3, r: "10-12", rest: 90, cue: "Coudes vers les hanches." },
-      { n: "Élévations latérales", s: 4, r: "12-15", rest: 60, cue: "Léger, strict, montée jusqu'aux épaules." },
-      { n: "Écarté poulie vis-à-vis", s: 3, r: "12-15", rest: 60, cue: "Bras légèrement fléchis, serre en bas 1 seconde." },
-      { n: "Curl marteau + barre au front", s: 3, r: "12", rest: 75, cue: "Superset : enchaîne les deux, repos après." },
+  kick: {
+    name: "Kick-boxing", focus: "12h–13h", kind: "kick", duration: 60,
+    blocks: [
+      { n: "Avant le cours", d: "", cue: "Petit-déj normal, rien de lourd après 10h. Bouteille d'eau de 1 L." },
+      { n: "Cours de kick-boxing", d: "12h–13h", cue: "Échauffement, technique, sacs, rounds. Garde du jus pour la technique plutôt que tout donner au cardio." },
+      { n: "Shaker juste après", d: "", cue: "C'est ta séance du jour : prends le shaker avant de partir en sortie." },
+      { n: "Étirements 5 min", d: "", cue: "Hanches, ischios, épaules. Ça évite les douleurs pour la salle du lendemain." },
     ],
-    cardio: "Marche inclinée 20 min — 12 %, 5 km/h",
   },
-  lowerB: {
-    name: "Bas B", focus: "Volume", kind: "gym", duration: 70,
-    ex: [
-      { n: "Soulevé de terre", s: 3, r: "4-5", rest: 180, cue: "Classique ou trap bar. Pousse le sol, verrouille avec les fessiers." },
-      { n: "Presse à cuisses ou hack squat", s: 3, r: "10-12", rest: 120, cue: "Amplitude complète, pas de verrouillage des genoux." },
-      { n: "Hip thrust", s: 3, r: "10", rest: 90, cue: "Menton rentré, pause en haut 1 seconde." },
-      { n: "Fentes marchées", s: 3, r: "12 / jambe", rest: 90, cue: "Grands pas, genou arrière frôle le sol." },
-      { n: "Leg extension", s: 3, r: "15", rest: 60, cue: "Pause en haut, descente lente." },
-      { n: "Roue abdominale", s: 3, r: "10", rest: 60, cue: "Bassin rétroversé, ne creuse pas le dos." },
+  tokyo: {
+    name: "Tokyo", focus: "Marche", kind: "cardio", duration: 0,
+    blocks: [
+      { n: "15 000 pas", d: "", cue: "Tokyo se visite à pied : c'est ton cardio de la semaine." },
+      { n: "Circuit chambre d'hôtel", d: "20 min · facultatif", cue: "3 tours : 15 pompes, 20 squats, 10 fentes par jambe, 40 s de gainage. 1 min de repos entre les tours." },
     ],
-    cardio: "Finisher rameur : 10 × (30 s fort / 30 s léger)",
+  },
+  walk: {
+    name: "Sortie", focus: "Marche", kind: "cardio", duration: 0,
+    blocks: [
+      { n: "Ta sortie compte", d: "~12 000 pas", cue: "Pas de salle aujourd'hui : la marche de la sortie fait le travail. Bois au moins 2 L." },
+    ],
   },
   cardio: {
     name: "Cardio", focus: "Zone 2", kind: "cardio", duration: 40,
     blocks: [
-      { n: "Vélo, marche inclinée ou rameur", d: "40 min", cue: "Allure où tu peux encore parler. Fréquence cardiaque ~120-135." },
+      { n: "Vélo, marche inclinée ou rameur", d: "40 min", cue: "Allure où tu peux encore parler." },
       { n: "Gainage", d: "3 × 45 s", cue: "Planche face + côtés." },
-    ],
-  },
-  walk: {
-    name: "Longue marche", focus: "Récup active", kind: "cardio", duration: 75,
-    blocks: [
-      { n: "Marche 60-90 min", d: "~8 000 pas", cue: "Ohori-kōen, bord de mer de Momochi ou le long de la Naka-gawa." },
     ],
   },
   rest: {
     name: "Repos", focus: "Récupération", kind: "rest", duration: 0,
     blocks: [
-      { n: "Repos complet", d: "", cue: "Garde tes 8 000 pas, dors 8 h, prépare tes repas de la semaine." },
+      { n: "Repos", d: "~8 000 pas", cue: "Dors 8 h. Une petite marche suffit." },
     ],
   },
 };
 
-/* 0 = lundi … 6 = dimanche */
-window.SCHEDULE = ["upperA", "lowerA", "cardio", "upperB", "lowerB", "walk", "rest"];
+window.GYM_ROTATION = ["fbA", "fbB", "fbC"];
 
-/* ---------- Règles affichées dans l'onglet Salle ---------- */
+/* ---------- Règles affichées dans l'onglet Sport ---------- */
 window.RULES = [
+  "Salle les mar/mer/ven sans grande sortie : tu fais la séance suivante dans l'ordre A → B → C, peu importe le jour.",
   "Échauffement : 5 min de vélo + 2 séries légères du premier exercice.",
   "Arrête chaque série à 1-2 répétitions de l'échec.",
   "Toutes les séries en haut de la fourchette ? Monte la charge : +2,5 kg haut, +5 kg bas.",
-  "Force en baisse 2 semaines de suite : fais une semaine à moitié des séries.",
-  "10 000 pas par jour minimum, en plus des séances.",
+  "Avec le kick 2 fois par semaine, pas besoin de cardio en plus : tes sorties et tes pas s'en chargent.",
 ];
 
-/* ---------- Prépa du dimanche ---------- */
 window.PREP = [
   "Poche 600 g de blanc de poulet (eau froide salée, frémissement, feu coupé 15 min couvert).",
   "Cuis 600 g de riz cru (≈ 1,4 kg cuit) et congèle-le en portions de 150 g pesées.",
