@@ -2,7 +2,7 @@
   "use strict";
 
   const { PLAN, FOODS, RECIPES, SAUCES, WEEKS, PANTRY, SHAKER, SESSIONS, GYM_ROTATION, RULES, PREP, SUPPLEMENTS, SUPP_MOMENTS,
-    TRIP, SORTIES, DAYS, EVENTS, BOOKINGS, TRIP_RULES, TRANSPORT, PASSES, PASS_NOTES, COSTS } = window;
+    TRIP, SORTIES, DAYS, EVENTS, BOOKINGS, TRIP_RULES, TRANSPORT, PASSES, PASS_NOTES, COSTS, MY_PLACES } = window;
 
   /* ---------------- helpers ---------------- */
   const $ = (s, el = document) => el.querySelector(s);
@@ -21,6 +21,7 @@
     train: '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="13" rx="3"/><path d="M5 10h14M8 20l2-4M16 20l-2-4"/><circle cx="9" cy="13" r=".6"/><circle cx="15" cy="13" r=".6"/></svg>',
     plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
     info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+    globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z"/></svg>',
     bowl: '<svg viewBox="0 0 24 24"><path d="M4 11h16a8 8 0 0 1-16 0z"/></svg>',
     copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
   };
@@ -110,13 +111,6 @@
   const isBento = (date, slot) => slot === "lunch" && !mealOut(date, slot) && sortiesOf(date).some((s) => s.full);
   const outCity = (date) => (inTokyo(date) ? "Tokyo" : (sortiesOf(date).find((s) => s.city) || {}).city);
   const OUT_MACROS = { k: 750, p: 45, c: 80, f: 25 };
-  const OUT_TIPS = [
-    "Teishoku de poisson ou de poulet grillé : le meilleur choix partout.",
-    "Konbini : 2 salad chicken + 1 onigiri + soupe miso, environ 600 kcal et 50 g de protéines.",
-    "Évite karaage, tonkatsu, tempura et les sauces tare ou teriyaki (sucrées).",
-    "Ramen : sans riz ni gyoza, et laisse la moitié du bouillon.",
-    "Demande « gohan sukuname » pour une petite portion de riz.",
-  ];
   // Menu de la semaine : l'entrée WEEKS du lundi, sinon la dernière disponible avant
   const WEEK_KEYS = Object.keys(WEEKS).sort();
   function weekFor(date) {
@@ -390,14 +384,11 @@
   }
 
   function openOutSheet(slot) {
-    const date = state.date; const so = sortiesOf(date).filter((s) => s.eat);
+    const date = state.date;
     const city = outCity(date);
     openSheet(`<div class="jp">${MEAL_LABEL[slot]} · ${DAY_LONG[dow(parse(date))].toLowerCase()} ${parse(date).getDate()}</div>
       <h2 class="r-title">Repas dehors${city ? ` à ${esc(city)}` : ""}</h2>
-      ${so.map((s) => `<p class="tip"><b>${esc(s.t)}</b> · ${esc(s.eat)}</p>`).join("")}
-      <div class="r-head"><h3>Les bons réflexes</h3></div>
-      <ul class="plain">${OUT_TIPS.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
-      <p class="section-sub" style="margin-top:14px">Compté environ ${OUT_MACROS.k} kcal et ${OUT_MACROS.p} g de protéines.</p>
+      <p class="section-sub" style="margin-top:10px">Compté environ ${OUT_MACROS.k} kcal et ${OUT_MACROS.p} g de protéines dans le total du jour.</p>
       <button class="btn ghost" data-meal-out="${slot}">Je mange à la maison finalement</button>`);
   }
 
@@ -526,13 +517,24 @@
     kick: "Kick 12h–13h", salle: "Salle 10h–11h30", journee: "Journée 9h–17h", weekend: "Week-end", matin: "Matinée sumo", tokyo: "Tokyo",
   };
 
+  function placeRow(name, q, extra = {}) {
+    return `<li>
+      <span class="place-name">${esc(name)}${extra.a ? `<small class="addr">${esc(extra.a)}</small>` : ""}</span>
+      <span class="place-btns">
+        <a class="map-btn" href="${mapsSearch(q)}" target="_blank" rel="noopener" aria-label="Voir ${esc(name)} dans Plans">${ICON.pin}Plans</a>
+        <a class="map-btn go" href="${mapsGo(q)}" target="_blank" rel="noopener" aria-label="Itinéraire en transports vers ${esc(name)}">${ICON.route}Y aller</a>
+        ${extra.w ? `<a class="map-btn web" href="${esc(extra.w)}" target="_blank" rel="noopener" aria-label="Site de ${esc(name)}">${ICON.globe}Site</a>` : ""}
+      </span>
+    </li>`;
+  }
   function placeRows(places) {
     if (!places || !places.length) return "";
-    return `<ul class="places">${places.map(([name, q]) => `<li>
-      <span class="place-name">${esc(name)}<small>${esc(q)}</small></span>
-      <a class="map-btn icon" href="${mapsSearch(q)}" target="_blank" rel="noopener" aria-label="Voir ${esc(name)} dans Plans">${ICON.pin}</a>
-      <a class="map-btn go" href="${mapsGo(q)}" target="_blank" rel="noopener" aria-label="Itinéraire en transports vers ${esc(name)}">${ICON.route}Y aller</a>
-    </li>`).join("")}</ul>`;
+    return `<ul class="places">${places.map(([name, q, extra]) => placeRow(name, q, extra)).join("")}</ul>`;
+  }
+  function gymPlace() {
+    const custom = plan.places.gym;
+    if (custom) return { name: custom, q: custom };
+    return MY_PLACES.gym;
   }
 
   function sortieWhen(date, s) {
@@ -555,9 +557,7 @@
       ${tags.length ? `<div class="sortie-top">${tags.join("")}</div>` : ""}
       ${isMain ? "" : `<h3>${esc(s.t)}</h3>`}
       <p class="sortie-d">${esc(s.d)}</p>
-      ${s.go ? `<p class="sortie-line">${ICON.train}<span>${esc(s.go)}</span></p>` : ""}
-      ${s.tip ? `<p class="sortie-line">${ICON.info}<span>${esc(s.tip)}</span></p>` : ""}
-      ${s.eat && (s.out || []).length ? `<p class="sortie-line">${ICON.bowl}<span>${esc(s.eat)}</span></p>` : ""}
+      ${s.info ? `<p class="sortie-line">${ICON.info}<span>${esc(s.info)}</span></p>` : ""}
       ${placeRows(s.p)}
       <div class="sortie-actions">
         <button class="act ${done ? "on" : ""}" data-sortie-done="${s.id}">${ICON.check}${done ? "Faite" : "Marquer faite"}</button>
@@ -595,8 +595,10 @@
     const rows = [];
     const sk = sessionKeyFor(date); const sess = SESSIONS[sk];
     so.filter((s) => s.morning).forEach((s) => rows.push({ t: "Matin", html: sortieCard(date, s, s === main) }));
-    if (sess.kind === "gym") rows.push({ t: "10h", html: `<button class="slot gym" data-goto-tab="salle"><span><b>${esc(sess.name)}</b><small>Salle 10h–11h30 · ouvrir la séance</small></span>${ICON.chev}</button>` });
-    if (sess.kind === "kick") rows.push({ t: "12h", html: `<button class="slot kick" data-goto-tab="salle"><span><b>Kick-boxing</b><small>12h–13h · shaker juste après</small></span>${ICON.chev}</button>` });
+    if (sess.kind === "gym") { const g = gymPlace(); rows.push({ t: "10h", html: `<div class="slot-wrap"><button class="slot gym" data-goto-tab="salle"><span><b>${esc(sess.name)}</b><small>Salle 10h–11h30 · ouvrir la séance</small></span>${ICON.chev}</button>
+      <ul class="places slim">${placeRow(g.name, g.q, g)}</ul></div>` }); }
+    if (sess.kind === "kick") { const k = plan.places.kick; rows.push({ t: "12h", html: `<div class="slot-wrap"><button class="slot kick" data-goto-tab="salle"><span><b>Kick-boxing</b><small>12h–13h · shaker juste après</small></span>${ICON.chev}</button>
+      ${k ? `<ul class="places slim">${placeRow(k, k)}</ul>` : ""}</div>` }); }
     if (tokyo) rows.push({ t: "", html: `<div class="slot tokyo"><span><b>Tokyo, du 27 oct. au 4 nov.</b><small>Marche beaucoup, repas dehors. Si tu peux rentrer le 3 nov. à midi : dernier soir des illuminations des temples de Gion (17h30–21h) et montgolfières illuminées à Saga (à vérifier).</small></span></div>` });
     so.filter((s) => !s.morning && !s.evening).forEach((s) => rows.push({ t: sortieWhen(date, s), html: sortieCard(date, s, s === main) }));
     if (dow(d) < 5 && !tokyo && !awayNight(date) && inTrip(date)) rows.push({ t: "17h", html: `<div class="slot work"><span><b>Travail</b><small>17h/18h–20h · facultatif, une belle sortie passe avant</small></span></div>` });
@@ -731,14 +733,18 @@
 
   function renderInfos() {
     const pl = plan.places;
-    const myPlace = (k, label, ph) => `<div class="myplace">
-      <label><span>${label}</span><input type="text" data-place="${k}" value="${esc(pl[k] || "")}" placeholder="${ph}"></label>
-      ${pl[k] ? `<div class="myplace-btns"><a class="map-btn" href="${mapsSearch(pl[k])}" target="_blank" rel="noopener">${ICON.pin}Plans</a><a class="map-btn go" href="${mapsGo(pl[k])}" target="_blank" rel="noopener">${ICON.route}Y aller</a></div>` : ""}
+    const myPlace = (k, label, ph) => {
+      const def = MY_PLACES[k];
+      const cur = pl[k] ? { name: pl[k], q: pl[k] } : def;
+      return `<div class="myplace">
+      <label><span>${label}</span><input type="text" data-place="${k}" value="${esc(pl[k] || "")}" placeholder="${esc(def ? def.name : ph)}"></label>
+      ${cur ? `<ul class="places slim">${placeRow(cur.name, cur.q, cur)}</ul>` : ""}
     </div>`;
+    };
     return `
       <section class="hero"><h1 class="hero-title">Infos</h1></section>
       <h2 class="section-title" style="margin-top:0">Mes lieux</h2>
-      <p class="section-sub">Le nom ou l'adresse de ta salle et de ton club, pour avoir les boutons Plans.</p>
+      <p class="section-sub">Écris le nom ou l'adresse pour changer de salle, ou pour ajouter ton club de kick.</p>
       ${myPlace("gym", "Salle de sport", "Nom ou adresse")}
       ${myPlace("kick", "Club de kick-boxing", "Nom ou adresse")}
       <details class="rules" open><summary>Le rythme ${ICON.down}</summary><ul>${TRIP_RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
