@@ -568,3 +568,18 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .ctable small { display: block; color: var(--muted); font-size: 12.5px; }
 .plain { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
 .plain li { margin: 6px 0; }
+
+/* étapes d'une journée */
+.sortie-alert { display: flex; gap: 9px; margin: 8px 0; font-size: 14px; color: var(--repas); background: color-mix(in srgb, var(--repas) 10%, transparent); padding: 9px 10px; border-radius: 10px; }
+.sortie-alert svg { width: 17px; height: 17px; flex: none; margin-top: 1px; }
+.steps-trip { list-style: none; padding: 0; margin: 12px 0 4px; }
+.steps-trip > li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+.step-n { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-3); color: var(--accent); font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+.step-n svg { width: 15px; height: 15px; stroke-width: 3; }
+.steps-trip > li.on .step-n { background: var(--ok); color: var(--accent-ink); }
+.steps-trip > li.on .step-body > b { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+.step-body { min-width: 0; }
+.step-body > b { display: block; font-size: 15.5px; font-weight: 700; line-height: 1.3; padding-top: 3px; }
+.step-body > p { margin: 3px 0 0; font-size: 14px; color: var(--muted); }
+.step-body .places { margin: 6px 0 0; border-top: 0; }
+.step-body .places li { padding: 6px 0; border-bottom: 0; }

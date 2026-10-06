@@ -21,6 +21,7 @@
     train: '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="13" rx="3"/><path d="M5 10h14M8 20l2-4M16 20l-2-4"/><circle cx="9" cy="13" r=".6"/><circle cx="15" cy="13" r=".6"/></svg>',
     plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
     info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+    yen: '<svg viewBox="0 0 24 24"><path d="M6 4l6 8 6-8M12 12v8M7 13h10M7 17h10"/></svg>',
     globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z"/></svg>',
     bowl: '<svg viewBox="0 0 24 24"><path d="M4 11h16a8 8 0 0 1-16 0z"/></svg>',
     copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
@@ -68,7 +69,7 @@
 
   /* ---------------- planning : cœur ---------------- */
   let plan = store.get("plan", {});
-  plan.assign ||= {}; plan.done ||= {}; plan.notes ||= {}; plan.unplaced ||= []; plan.resa ||= {}; plan.todo ||= []; plan.places ||= {}; plan.mealOut ||= {};
+  plan.assign ||= {}; plan.done ||= {}; plan.notes ||= {}; plan.unplaced ||= []; plan.resa ||= {}; plan.todo ||= []; plan.places ||= {}; plan.mealOut ||= {}; plan.stepDone ||= {};
   const savePlan = () => store.set("plan", plan);
 
   const inTokyo = (date) => date >= TRIP.tokyo.from && date <= TRIP.tokyo.to;
@@ -558,6 +559,14 @@
       ${isMain ? "" : `<h3>${esc(s.t)}</h3>`}
       <p class="sortie-d">${esc(s.d)}</p>
       ${s.info ? `<p class="sortie-line">${ICON.info}<span>${esc(s.info)}</span></p>` : ""}
+      ${s.budget ? `<p class="sortie-line">${ICON.yen}<span>${esc(s.budget)}</span></p>` : ""}
+      ${(s.alerts || []).map((t) => `<p class="sortie-alert">${ICON.info}<span>${esc(t)}</span></p>`).join("")}
+      ${s.steps ? `<ol class="steps-trip">${s.steps.map((st, i) => {
+        const k = `${s.id}:${i}`; const on = !!plan.stepDone[k];
+        return `<li class="${on ? "on" : ""}">
+          <button class="step-n" data-step="${k}" aria-pressed="${on}" aria-label="Étape ${i + 1} faite">${on ? ICON.check : i + 1}</button>
+          <div class="step-body"><b>${esc(st.t)}</b>${st.info ? `<p>${esc(st.info)}</p>` : ""}${placeRows(st.p)}</div></li>`;
+      }).join("")}</ol>` : ""}
       ${placeRows(s.p)}
       <div class="sortie-actions">
         <button class="act ${done ? "on" : ""}" data-sortie-done="${s.id}">${ICON.check}${done ? "Faite" : "Marquer faite"}</button>
@@ -791,6 +800,7 @@
       plan.unplaced = plan.unplaced.filter((x) => x !== id);
       savePlan(); closeSheet(); render(); toast("Sortie ajoutée"); return true;
     }
+    if (ds.step) { plan.stepDone[ds.step] = !plan.stepDone[ds.step]; savePlan(); rerender(); return true; }
     if (ds.resa) { plan.resa[ds.resa] = !plan.resa[ds.resa]; savePlan(); rerender(); return true; }
     if (ds.todo) { const t = plan.todo[Number(ds.todo)]; t.done = !t.done; savePlan(); rerender(); return true; }
     if (ds.todoDel) { plan.todo.splice(Number(ds.todoDel), 1); savePlan(); rerender(); return true; }
@@ -1087,7 +1097,7 @@
   $("#nextWeek").addEventListener("click", () => setDate(iso(addDays(parse(state.date), 7))));
 
   document.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-set],[data-toggle-cue],[data-extra],[data-meal],[data-recipe],[data-seg],[data-shop],[data-action],[data-pick-session],[data-mult],[data-del-weight],[data-pantry],[data-date-go],[data-supp],[data-supp-open],[data-jar],[data-plan-seg],[data-goto-plan],[data-goto-day],[data-sortie-done],[data-sortie-move],[data-move-to],[data-sortie-remove],[data-sortie-add],[data-add-pick],[data-resa],[data-todo],[data-todo-del],[data-cal-month],[data-out-open],[data-meal-out],[data-goto-tab]");
+    const el = e.target.closest("[data-set],[data-toggle-cue],[data-extra],[data-meal],[data-recipe],[data-seg],[data-shop],[data-action],[data-pick-session],[data-mult],[data-del-weight],[data-pantry],[data-date-go],[data-supp],[data-supp-open],[data-jar],[data-plan-seg],[data-goto-plan],[data-goto-day],[data-sortie-done],[data-sortie-move],[data-move-to],[data-sortie-remove],[data-sortie-add],[data-add-pick],[data-resa],[data-todo],[data-todo-del],[data-cal-month],[data-out-open],[data-meal-out],[data-goto-tab],[data-step]");
     if (!el) return;
     const ds = el.dataset;
 
