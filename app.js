@@ -2,7 +2,7 @@
   "use strict";
 
   const { PLAN, FOODS, RECIPES, SAUCES, WEEKS, PANTRY, SHAKER, SESSIONS, GYM_ROTATION, RULES, PREP, SUPPLEMENTS, SUPP_MOMENTS,
-    TRIP, SORTIES, DAYS, EVENTS, BOOKINGS, TRIP_RULES, TRANSPORT, PASSES, PASS_NOTES, COSTS, MY_PLACES } = window;
+    TRIP, SORTIES, DAYS, EVENTS, BOOKINGS, TRIP_RULES, TRANSPORT, PASSES, PASS_NOTES, COSTS, COSTS_NOTE, MY_PLACES } = window;
 
   /* ---------------- helpers ---------------- */
   const $ = (s, el = document) => el.querySelector(s);
@@ -595,7 +595,8 @@
     const month = TRIP.months[d.getMonth()];
     const kind = tokyo ? "tokyo" : isKick(date) ? "kick" : isGym(date) ? "salle" : isWeekend(date) ? "weekend" : so.some((s) => s.morning) ? "matin" : so.some((s) => s.full) ? "journee" : "";
     const main = so.find((s) => !s.evening) || so[0];
-    const title = tokyo ? "Tokyo" : main ? main.t : "Journée libre";
+    const title = tokyo ? "Tokyo" : main ? main.t : "Libre";
+    const dayNote = !tokyo && base.note && !plan.assign[date] ? base.note : "";
     const chips = [];
     if (MTYPE[kind]) chips.push(`<span class="chip accent">${MTYPE[kind]}</span>`);
     if (base.ferie) chips.push(`<span class="chip">Férié</span>`);
@@ -610,6 +611,7 @@
       ${k ? `<ul class="places slim">${placeRow(k, k)}</ul>` : ""}</div>` }); }
     if (tokyo) rows.push({ t: "", html: `<div class="slot tokyo"><span><b>Tokyo, du 27 oct. au 4 nov.</b><small>Marche beaucoup, repas dehors. Si tu peux rentrer le 3 nov. à midi : dernier soir des illuminations des temples de Gion (17h30–21h) et montgolfières illuminées à Saga (à vérifier).</small></span></div>` });
     so.filter((s) => !s.morning && !s.evening).forEach((s) => rows.push({ t: sortieWhen(date, s), html: sortieCard(date, s, s === main) }));
+    if (dayNote) rows.push({ t: "", html: `<div class="slot faint"><span><small style="margin:0;color:var(--text)">${esc(dayNote)}</small></span></div>` });
     if (dow(d) < 5 && !tokyo && !awayNight(date) && inTrip(date)) rows.push({ t: "17h", html: `<div class="slot work"><span><b>Travail</b><small>17h/18h–20h · facultatif, une belle sortie passe avant</small></span></div>` });
     if (dow(d) === 4 && !tokyo && inTrip(date)) rows.push({ t: "Soir", html: `<div class="slot faint"><span><b>Kick du vendredi soir</b><small>Une semaine sur deux</small></span></div>` });
     so.filter((s) => s.evening).forEach((s) => rows.push({ t: "Soir", html: sortieCard(date, s, s === main) }));
@@ -684,7 +686,7 @@
       const sp = inTokyo(dt) ? "" : isKick(dt) ? `<span class="mini k">Kick</span>` : isGym(dt) ? `<span class="mini s">Salle</span>` : "";
       agenda += `<li><button class="ag-row ${dt === today ? "today" : ""}" data-goto-day="${dt}">
         <span class="ag-date"><b>${DAY_SHORT[dow(parse(dt))]}</b><span class="num">${i}</span></span>
-        <span class="ag-main">${inTokyo(dt) ? "<em>Tokyo</em>" : so.length ? so.map((s) => `<span class="${plan.done[s.id] === dt ? "ag-done" : ""}">${esc(s.t)}</span>`).join("") : "<em>Libre</em>"}</span>
+        <span class="ag-main">${inTokyo(dt) ? "<em>Tokyo</em>" : so.length ? so.map((s) => `<span class="${plan.done[s.id] === dt ? "ag-done" : ""}">${esc(s.t)}</span>`).join("") : `<em>${esc(baseDay(dt).note && !plan.assign[dt] ? baseDay(dt).note : "Libre")}</em>`}</span>
         <span class="ag-side">${sp}${so.some((s) => s.pass) ? `<span class="mini p">Pass</span>` : ""}${so.some((s) => s.night) ? `<span class="mini n">Nuit</span>` : ""}</span>
       </button></li>`;
     }
@@ -758,13 +760,14 @@
       ${myPlace("kick", "Club de kick-boxing", "Nom ou adresse")}
       <details class="rules" open><summary>Le rythme ${ICON.down}</summary><ul>${TRIP_RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
       <details class="rules"><summary>Transports et SUGOCA ${ICON.down}</summary><ul>${TRANSPORT.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
-      <details class="rules"><summary>Pass JR Kyushu ${ICON.down}</summary>
+      <details class="rules"><summary>SUNQ Pass ${ICON.down}</summary>
         <table class="ctable"><thead><tr><th>Pass</th><th>Prix</th><th>Sans</th></tr></thead><tbody>
         ${PASSES.map((p) => `<tr><td><b>${esc(p.name)}</b><small>${esc(p.days)} · ${esc(p.covers)}</small></td><td class="num">${esc(p.price)}</td><td class="num">${esc(p.without)}</td></tr>`).join("")}
         </tbody></table>
         <ul>${PASS_NOTES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
       ${COSTS.map((g) => `<details class="rules"><summary>Budget : ${esc(g.group.toLowerCase())} ${ICON.down}</summary>
         <table class="ctable"><tbody>${g.rows.map(([a, b, c]) => `<tr><td>${esc(a)}${c ? `<small>${esc(c)}</small>` : ""}</td><td class="num">${esc(b)}</td></tr>`).join("")}</tbody></table></details>`).join("")}
+      ${COSTS_NOTE ? `<p class="note">${esc(COSTS_NOTE)}</p>` : ""}
       <p class="disclaimer">Prix en yens par personne, à vérifier avant d'acheter.</p>
     `;
   }
