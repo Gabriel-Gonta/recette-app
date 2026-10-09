@@ -82,7 +82,9 @@
   const sortieIds = (date) => (inTokyo(date) ? [] : (plan.assign[date] ?? baseDay(date).s).filter((id) => SORTIES[id]));
   const sortiesOf = (date) => sortieIds(date).map((id) => ({ id, ...SORTIES[id] }));
   const isKick = (date) => !inTokyo(date) && [0, 3].includes(dow(parse(date)));
-  const isGym = (date) => !inTokyo(date) && [1, 2, 4].includes(dow(parse(date))) && !sortiesOf(date).some((s) => s.full || s.morning);
+  // « Journée, sans salle » : pas de salle même si la sortie a été retirée ou reportée
+  const isGym = (date) => !inTokyo(date) && [1, 2, 4].includes(dow(parse(date)))
+    && !(baseDay(date).m === "journee" && !plan.assign[date]) && !sortiesOf(date).some((s) => s.full || s.morning);
   const isWeekend = (date) => dow(parse(date)) >= 5;
   const awayNight = (date) => sortiesOf(date).find((s) => s.night);
 
