@@ -71,7 +71,7 @@ window.SORTIES = {
   yutoku: { t: "Yutoku Inari & Hizen-Hamashuku", full: true, city: "Kashima (Saga)", out: ["lunch"],
     d: "Après le kick : Yutoku Inari-jinja (grand sanctuaire sur pilotis), puis la rue des brasseries de saké de Hizen-Hamashuku",
     info: "Exception JR : train jusqu'à Hizen-Kashima, puis bus d'environ 10 min. Hizen-Hama est à une gare de là",
-    p: [["Yutoku Inari-jinja", "祐徳稲荷神社", { w: "https://www.city.saga-kashima.lg.jp/main/323.html" }], ["Hizen-Hamashuku", "肥前浜宿"]]] },
+    p: [["Yutoku Inari-jinja", "祐徳稲荷神社", { w: "https://www.city.saga-kashima.lg.jp/main/323.html" }], ["Hizen-Hamashuku", "肥前浜宿"]] },
   nokonoshima: { t: "Île de Nokonoshima",
     d: "Île de Nokonoshima (cosmos)",
     info: "Métro ou bus jusqu'à Meinohama, puis ferry d'environ 10 min",
