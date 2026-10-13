@@ -565,7 +565,8 @@
       ${(s.alerts || []).map((t) => `<p class="sortie-alert">${ICON.info}<span>${esc(t)}</span></p>`).join("")}
       ${s.steps ? `<ol class="steps-trip">${s.steps.map((st, i) => {
         const k = `${s.id}:${i}`; const on = !!plan.stepDone[k];
-        return `<li class="${on ? "on" : ""}">
+        const head = st.g && (i === 0 || s.steps[i - 1].g !== st.g) ? `<li class="step-group">${esc(st.g)}</li>` : "";
+        return `${head}<li class="${on ? "on" : ""}">
           <button class="step-n" data-step="${k}" aria-pressed="${on}" aria-label="Étape ${i + 1} faite">${on ? ICON.check : i + 1}</button>
           <div class="step-body"><b>${esc(st.t)}</b>${st.info ? `<p>${esc(st.info)}</p>` : ""}${placeRows(st.p)}</div></li>`;
       }).join("")}</ol>` : ""}
