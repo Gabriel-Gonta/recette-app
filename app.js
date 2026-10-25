@@ -2,7 +2,7 @@
   "use strict";
 
   const { PLAN, FOODS, RECIPES, SAUCES, WEEKS, PANTRY, SHAKER, SESSIONS, GYM_ROTATION, RULES, PREP, SUPPLEMENTS, SUPP_MOMENTS,
-    TRIP, SORTIES, DAYS, EVENTS, BOOKINGS, TRIP_RULES, TRANSPORT, PASSES, PASS_NOTES, COSTS, COSTS_NOTE, MY_PLACES } = window;
+    TRIP, SORTIES, DAYS, EVENTS, BOOKINGS, TRIP_RULES, TRANSPORT, PASSES, PASS_NOTES, COSTS, COSTS_NOTE, MY_PLACES, TOKYO_INFO } = window;
 
   /* ---------------- helpers ---------------- */
   const $ = (s, el = document) => el.querySelector(s);
@@ -79,7 +79,7 @@
     const w = dow(parse(date));
     return { m: w >= 5 ? "weekend" : w === 0 || w === 3 ? "kick" : "salle", s: [] };
   }
-  const sortieIds = (date) => (inTokyo(date) ? [] : (plan.assign[date] ?? baseDay(date).s).filter((id) => SORTIES[id]));
+  const sortieIds = (date) => (plan.assign[date] ?? baseDay(date).s).filter((id) => SORTIES[id]);
   const sortiesOf = (date) => sortieIds(date).map((id) => ({ id, ...SORTIES[id] }));
   const isKick = (date) => !inTokyo(date) && [0, 3].includes(dow(parse(date)));
   // « Journée, sans salle » : pas de salle même si la sortie a été retirée ou reportée
@@ -568,7 +568,7 @@
         const head = st.g && (i === 0 || s.steps[i - 1].g !== st.g) ? `<li class="step-group">${esc(st.g)}</li>` : "";
         return `${head}<li class="${on ? "on" : ""}">
           <button class="step-n" data-step="${k}" aria-pressed="${on}" aria-label="Étape ${i + 1} faite">${on ? ICON.check : i + 1}</button>
-          <div class="step-body"><b>${esc(st.t)}</b>${st.info ? `<p>${esc(st.info)}</p>` : ""}${placeRows(st.p)}</div></li>`;
+          <div class="step-body">${st.h ? `<span class="step-h">${esc(st.h)}</span>` : ""}<b>${esc(st.t)}</b>${st.info ? `<p>${esc(st.info)}</p>` : ""}${placeRows(st.p)}</div></li>`;
       }).join("")}</ol>` : ""}
       ${placeRows(s.p)}
       <div class="sortie-actions">
@@ -598,7 +598,7 @@
     const month = TRIP.months[d.getMonth()];
     const kind = tokyo ? "tokyo" : isKick(date) ? "kick" : isGym(date) ? "salle" : isWeekend(date) ? "weekend" : so.some((s) => s.morning) ? "matin" : so.some((s) => s.full) ? "journee" : "";
     const main = so.find((s) => !s.evening) || so[0];
-    const title = tokyo ? "Tokyo" : main ? main.t : "Libre";
+    const title = main ? main.t : tokyo ? "Tokyo" : "Libre";
     const dayNote = !tokyo && base.note && !plan.assign[date] ? base.note : "";
     const chips = [];
     if (MTYPE[kind]) chips.push(`<span class="chip accent">${MTYPE[kind]}</span>`);
@@ -612,7 +612,7 @@
       <ul class="places slim">${placeRow(g.name, g.q, g)}</ul></div>` }); }
     if (sess.kind === "kick") { const k = plan.places.kick; rows.push({ t: "12h", html: `<div class="slot-wrap"><button class="slot kick" data-goto-tab="salle"><span><b>Kick-boxing</b><small>12h–13h · shaker juste après</small></span>${ICON.chev}</button>
       ${k ? `<ul class="places slim">${placeRow(k, k)}</ul>` : ""}</div>` }); }
-    if (tokyo) rows.push({ t: "", html: `<div class="slot tokyo"><span><b>Tokyo, du 27 oct. au 4 nov.</b><small>Marche beaucoup, repas dehors. Si tu peux rentrer le 3 nov. à midi : dernier soir des illuminations des temples de Gion (17h30–21h) et montgolfières illuminées à Saga (à vérifier).</small></span></div>` });
+    if (tokyo && !so.length) rows.push({ t: "", html: `<div class="slot tokyo"><span><b>Tokyo, du 27 oct. au 4 nov.</b><small>Marche beaucoup, repas dehors. Si tu peux rentrer le 3 nov. à midi : dernier soir des illuminations des temples de Gion (17h30–21h) et montgolfières illuminées à Saga (à vérifier).</small></span></div>` });
     so.filter((s) => !s.morning && !s.evening).forEach((s) => rows.push({ t: sortieWhen(date, s), html: sortieCard(date, s, s === main) }));
     if (dayNote) rows.push({ t: "", html: `<div class="slot faint"><span><small style="margin:0;color:var(--text)">${esc(dayNote)}</small></span></div>` });
     if (dow(d) < 5 && !tokyo && !awayNight(date) && inTrip(date)) rows.push({ t: "17h", html: `<div class="slot work"><span><b>Travail</b><small>17h/18h–20h · facultatif, une belle sortie passe avant</small></span></div>` });
@@ -689,7 +689,7 @@
       const sp = inTokyo(dt) ? "" : isKick(dt) ? `<span class="mini k">Kick</span>` : isGym(dt) ? `<span class="mini s">Salle</span>` : "";
       agenda += `<li><button class="ag-row ${dt === today ? "today" : ""}" data-goto-day="${dt}">
         <span class="ag-date"><b>${DAY_SHORT[dow(parse(dt))]}</b><span class="num">${i}</span></span>
-        <span class="ag-main">${inTokyo(dt) ? "<em>Tokyo</em>" : so.length ? so.map((s) => `<span class="${plan.done[s.id] === dt ? "ag-done" : ""}">${esc(s.t)}</span>`).join("") : `<em>${esc(baseDay(dt).note && !plan.assign[dt] ? baseDay(dt).note : "Libre")}</em>`}</span>
+        <span class="ag-main">${inTokyo(dt) && !so.length ? "<em>Tokyo</em>" : so.length ? so.map((s) => `<span class="${plan.done[s.id] === dt ? "ag-done" : ""}">${esc(s.t)}</span>`).join("") : `<em>${esc(baseDay(dt).note && !plan.assign[dt] ? baseDay(dt).note : "Libre")}</em>`}</span>
         <span class="ag-side">${sp}${so.some((s) => s.pass) ? `<span class="mini p">Pass</span>` : ""}${so.some((s) => s.night) ? `<span class="mini n">Nuit</span>` : ""}</span>
       </button></li>`;
     }
@@ -718,7 +718,8 @@
   function renderResa() {
     const today = todayIso();
     const items = [...BOOKINGS].sort((a, b) => a.for.localeCompare(b.for));
-    const nDone = items.filter((b) => plan.resa[b.id]).length;
+    const isBooked = (b) => plan.resa[b.id] ?? !!b.done;
+    const nDone = items.filter(isBooked).length;
     const left = (dt) => { const n = Math.round((parse(dt) - parse(today)) / 864e5); return n < 0 ? "passé" : n === 0 ? "aujourd'hui" : `dans ${n} j`; };
     return `
       <section class="hero">
@@ -727,7 +728,7 @@
         <div class="progress-label num"><span>${nDone} / ${items.length} réservé</span></div>
       </section>
       ${items.map((b) => {
-        const on = !!plan.resa[b.id];
+        const on = isBooked(b);
         const urgent = !on && (parse(b.for) - parse(today)) / 864e5 <= 14;
         return `<button class="block resa ${on ? "on" : ""}" data-resa="${b.id}" aria-pressed="${on}">
           <span class="check">${ICON.check}</span>
@@ -761,6 +762,11 @@
       <p class="section-sub">Écris le nom ou l'adresse pour changer de salle, ou pour ajouter ton club de kick.</p>
       ${myPlace("gym", "Salle de sport", "Nom ou adresse")}
       ${myPlace("kick", "Club de kick-boxing", "Nom ou adresse")}
+      ${TOKYO_INFO ? `<details class="rules"><summary>Tokyo : sur place et budget ${ICON.down}</summary>
+        <p class="section-sub" style="margin:0 0 8px">${esc(TOKYO_INFO.head)}</p>
+        <table class="ctable"><tbody>${TOKYO_INFO.onsite.map(([x, y, z]) => `<tr><td>${esc(x)}<small>${esc(z)}</small></td><td class="num">${esc(y)}</td></tr>`).join("")}</tbody></table>
+        <table class="ctable"><thead><tr><th>Budget</th><th>Estimation</th></tr></thead><tbody>${TOKYO_INFO.budget.map(([x, y]) => `<tr><td>${esc(x)}</td><td class="num">${esc(y)}</td></tr>`).join("")}</tbody></table>
+      </details>` : ""}
       <details class="rules" open><summary>Le rythme ${ICON.down}</summary><ul>${TRIP_RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
       <details class="rules"><summary>Transports et SUGOCA ${ICON.down}</summary><ul>${TRANSPORT.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
       <details class="rules"><summary>SUNQ Pass ${ICON.down}</summary>
@@ -807,7 +813,7 @@
       savePlan(); closeSheet(); render(); toast("Sortie ajoutée"); return true;
     }
     if (ds.step) { plan.stepDone[ds.step] = !plan.stepDone[ds.step]; savePlan(); rerender(); return true; }
-    if (ds.resa) { plan.resa[ds.resa] = !plan.resa[ds.resa]; savePlan(); rerender(); return true; }
+    if (ds.resa) { const bk = BOOKINGS.find((x) => x.id === ds.resa); plan.resa[ds.resa] = !(plan.resa[ds.resa] ?? !!(bk && bk.done)); savePlan(); rerender(); return true; }
     if (ds.todo) { const t = plan.todo[Number(ds.todo)]; t.done = !t.done; savePlan(); rerender(); return true; }
     if (ds.todoDel) { plan.todo.splice(Number(ds.todoDel), 1); savePlan(); rerender(); return true; }
     return false;

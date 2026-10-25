@@ -584,3 +584,4 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .step-body .places { margin: 6px 0 0; border-top: 0; }
 .step-body .places li { padding: 6px 0; border-bottom: 0; }
 .steps-trip > li.step-group { display: block; border-top: 0; padding: 14px 0 2px; font-size: 13px; font-weight: 700; color: var(--accent); }
+.step-h { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); padding: 2px 7px; border-radius: 6px; margin: 2px 0 4px; }
