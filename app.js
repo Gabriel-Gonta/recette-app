@@ -627,7 +627,7 @@
         <div class="hero-meta">${chips.join("")}</div>
       </section>
       <ol class="timeline">${rows.map((r) => `<li><span class="tl-time">${esc(r.t)}</span><div class="tl-body">${r.html}</div></li>`).join("")}</ol>
-      ${tokyo ? "" : `<button class="add-sortie" data-sortie-add="${date}">${ICON.plus}Ajouter une sortie</button>`}
+      <button class="add-sortie" data-sortie-add="${date}">${ICON.plus}Ajouter une sortie</button>
       <h2 class="section-title">Mes notes</h2>
       <textarea class="notes" data-note="${date}" placeholder="Horaires de bus, dernier retour, une idée…" rows="3">${esc(note)}</textarea>
     `;
