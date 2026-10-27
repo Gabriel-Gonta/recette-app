@@ -1,5 +1,5 @@
 // Réseau d'abord (pour recevoir les mises à jour du plan), cache si hors ligne.
-const CACHE = "seche-v19";
+const CACHE = "seche-v20";
 const ASSETS = ["./", "index.html", "style.css", "app.js", "data.js", "manifest.webmanifest", "icons/icon.svg", "trip.js"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
@@ -9,7 +9,8 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    fetch(e.request).then((res) => {
+    // no-cache : toujours revalider auprès du serveur, pour voir les mises à jour tout de suite
+    fetch(e.request, new URL(e.request.url).origin === location.origin ? { cache: "no-cache" } : {}).then((res) => {
       if (res.ok && new URL(e.request.url).origin === location.origin) {
         const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy));
       }
