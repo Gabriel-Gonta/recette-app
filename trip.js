@@ -620,6 +620,7 @@ Object.assign(window.SORTIES, {
       { h: "12h00", t: "Atterrissage Narita → Narita Express jusqu'à Shinjuku", info: "80–95 min. N'EX aller-retour ¥5 200 sur place, passeport étranger, valable 14 jours",
         p: [["Aéroport de Narita", "成田空港"], ["Gare de Shinjuku", "新宿駅"]] },
       { h: "15h30", t: "Check-in Unplan Shinjuku", p: [["Unplan Shinjuku", "UNPLAN Shinjuku"]] },
+      { h: "16h15", t: "⛩️ Les escaliers de « Your Name »", info: "Les marches rouges de Suga-jinja, la scène finale du film. À ~10 min de Shinjuku : métro Marunouchi jusqu'à Yotsuya-sanchome, puis ~10 min à pied. Coucher de soleil vers 16h50, la lumière est belle. Quartier résidentiel : parle doucement et ne bloque pas les marches pour les photos.", p: [["Escaliers de Suga-jinja", "須賀神社 新宿区 四谷", { a: "~10 min à pied de Yotsuya-sanchome ou Yotsuya · sanctuaire 6h–17h (6h30 de nov. à fév.)", w: "https://japananimetour.com/seichi-jyunrei-tokyomap02/" }]] },
       { h: "17h00", t: "Observatoire de la mairie de Tokyo (gratuit)", info: "Tokyo de nuit.", p: [["Observatoire de la mairie", "東京都庁 展望室"]] },
       { h: "18h30", t: "Dîner à Omoide Yokocho", info: "Brochettes yakitori.", p: [["Omoide Yokocho", "思い出横丁 新宿"]] },
       { h: "19h30", t: "Kabukicho", info: "Tête de Godzilla, Tokyu Kabukicho Tower.", p: [["Tête de Godzilla", "ゴジラヘッド 新宿東宝ビル"], ["Tokyu Kabukicho Tower", "東急歌舞伎町タワー"]] },
@@ -707,7 +708,6 @@ Object.assign(window.SORTIES, {
     d: "Mar 3 (jour férié) — Shopping n°2 otaku + punk (soirée libre)",
     steps: [
       { h: "9h30", t: "Shinjuku Gyoen", info: "Jardin, couleurs d'automne. C'est aussi le décor du film « Le Jardin des mots » de Makoto Shinkai (le pavillon au bord de l'étang).", p: [["Shinjuku Gyoen", "新宿御苑"]] },
-      { h: "11h00", t: "⛩️ Les escaliers de « Your Name »", info: "Les marches rouges de Suga-jinja, la scène finale du film. Quartier résidentiel : parle doucement et ne bloque pas les marches pour les photos.", p: [["Escaliers de Suga-jinja", "須賀神社 新宿区 四谷", { a: "~10 min à pied de Yotsuya-sanchome ou Yotsuya · sanctuaire 6h–17h (6h30 de nov. à fév.)", w: "https://japananimetour.com/seichi-jyunrei-tokyomap02/" }]] },
       { h: "12h00", t: "Nakano Broadway — les boutiques Mandarake", info: "Manga, figurines, vintage. Cash pour les petits stands. Détaxe : cumule les tickets Mandarake jusqu'à 5 500 ¥.", p: [["Nakano Broadway", "中野ブロードウェイ"]] },
       { h: "15h30", t: "Koenji", info: "Fripes vintage et punk.", p: [["Koenji", "高円寺駅"]] },
       { h: "Soir", t: "🍔 Option NANA : Jackson Hole à Chofu", info: "Le bar-burger qui apparaît dans le manga NANA, lieu de pèlerinage des fans. Jackson Burger fait maison (~¥1 200 la version double) et bières artisanales. Train Keio depuis Shinjuku.", p: [' + JH + '] },
