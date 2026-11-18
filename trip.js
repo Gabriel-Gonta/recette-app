@@ -19,6 +19,7 @@
 window.TRIP = {
   start: "2026-10-03",
   end: "2026-12-12",
+  rev: "2026-11-18",
   tokyo: { from: "2026-10-27", to: "2026-11-04" },
   months: {
     9: { name: "Octobre", theme: "La mer, les fleurs et Nagasaki", intro: "Octobre profite de la douceur : îles, champs de fleurs et la côte d'Itoshima." },
@@ -938,18 +939,19 @@ window.SORTIES = {
     ],
     p: [] },
 
-  beppuJigoku: { t: "Beppu : les enfers", full: true, city: "Beppu", night: "Beppu", out: ["breakfast", "lunch", "dinner"],
-    d: "Beppu : circuit des Jigoku à Kannawa, jigoku-mushi, Chinoike et Tatsumaki, bain de sable",
-    info: "Bus locaux Kamenoi (pass 1 jour environ 1 000 ¥). Billet commun des 7 enfers environ 2 200 ¥",
+  beppuJigoku: { t: "Beppu : les enfers & onsen", full: true, city: "Beppu", night: "Beppu", out: ["breakfast", "lunch", "dinner"],
+    d: "Beppu : circuit des Jigoku à Kannawa, jigoku-mushi, Chinoike et Tatsumaki, puis bain de sable à Hyotan Onsen (tatouages acceptés)",
+    info: "Bus Kamenoi depuis la gare de Beppu (lignes 5, 7 ou 9 pour Kannawa, environ 25 min). Pass bus 1 jour environ 1 000 ¥. Billet commun des 7 enfers environ 2 200 ¥. Attention : Takegawara Onsen est fermé aujourd'hui (fermé le 3e mercredi du mois)",
+    alerts: ["Takegawara Onsen est fermé aujourd'hui (3e mercredi du mois) : va à Hyotan Onsen, à Kannawa, qui accepte les tatouages."],
     steps: [
-      { h: "9h00", t: "Bus pour Kannawa et le circuit des Jigoku", info: "8h–17h. L'enfer de la mer (bleu), l'enfer des monstres, l'enfer de boue…", p: [["Enfers de Beppu", "別府地獄めぐり 海地獄", { w: "https://www.beppu-jigoku.com/" }]] },
+      { h: "9h00", t: "Bus pour Kannawa et le circuit des Jigoku", info: "8h–17h. L'enfer de la mer (bleu), l'enfer des monstres, l'enfer de boue, l'enfer de la montagne…", p: [["Enfers de Beppu", "別府地獄めぐり 海地獄", { w: "https://www.beppu-jigoku.com/" }]] },
       { h: "Midi", t: "Jigoku-mushi", info: "Tu cuis toi-même ton repas à la vapeur de la source, environ 1 000–1 500 ¥", p: [["Jigoku-mushi Kobo Kannawa", "地獄蒸し工房 鉄輪"]] },
-      { h: "Après-midi", t: "Chinoike (l'enfer de sang) et Tatsumaki (le geyser)", info: "À environ 10 min en bus de Kannawa, compris dans le billet commun. Le geyser jaillit environ toutes les 30–40 min", p: [["Chinoike Jigoku", "血の池地獄"], ["Tatsumaki Jigoku", "龍巻地獄"]] },
-      { h: "16h00", t: "Bain de sable de Takegawara", info: "Bain de sable environ 1 500 ¥, bain simple environ 300 ¥", p: [["Takegawara Onsen", "竹瓦温泉"]] },
-      { h: "Soir", t: "🎣 Pêche sur le quai", p: [["Port de Beppu", "別府港"]] },
+      { h: "Après-midi", t: "Chinoike (l'enfer de sang) et Tatsumaki (le geyser)", info: "Environ 10 min en bus depuis Kannawa, compris dans le billet commun. Le geyser jaillit environ toutes les 30–40 min", p: [["Chinoike Jigoku", "血の池地獄"], ["Tatsumaki Jigoku", "龍巻地獄"]] },
+      { h: "16h00", t: "♨️ Hyotan Onsen : bain + bain de sable (tatouages OK)", info: "Tatouages acceptés partout, sans les couvrir. 9h–1h (grands bains jusqu'à minuit, bain de sable jusqu'à 23h, dernière entrée 22h30). Bain 1 160 ¥ + bain de sable 840 ¥. Espèces uniquement. À 5 min à pied de l'arrêt de bus Kannawa", p: [["Hyotan Onsen", "ひょうたん温泉 別府", { a: "別府市鉄輪159-2 (159-2 Kannawa, Beppu) · 9h–1h · 1 160 ¥ (+840 ¥ bain de sable)", w: "https://www.hyotan-onsen.com/" }]] },
+      { t: "Balade dans Kannawa au crépuscule", info: "Gratuit. Les fumées de vapeur qui sortent des rues et des toits", p: [["Kannawa", "鉄輪温泉 別府"]] },
+      { h: "Soir", t: "🎣 Pêche sur le quai", info: "Chinchard, sébaste", p: [["Port de Beppu", "別府港"]] },
     ],
     p: [] },
-
   oita: { t: "Oita", full: true, city: "Oita", night: "Beppu", out: ["breakfast", "lunch", "dinner"],
     d: "Oita : singes de Takasakiyama, aquarium Umitamago, ruines du château Funai et musée OPAM, puis retour à Beppu",
     info: "Bus de Beppu (environ 15 min). Takasakiyama et Umitamago sont face à face. Pour Oita centre : JR Beppu → Oita (environ 280 ¥)",

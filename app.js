@@ -71,6 +71,12 @@
   let plan = store.get("plan", {});
   plan.assign ||= {}; plan.done ||= {}; plan.notes ||= {}; plan.unplaced ||= []; plan.resa ||= {}; plan.todo ||= []; plan.places ||= {}; plan.mealOut ||= {}; plan.stepDone ||= {};
   const savePlan = () => store.set("plan", plan);
+  // Quand le planning est refait (TRIP.rev change), les anciens déplacements manuels des jours à venir sont effacés
+  if (TRIP.rev && plan.rev !== TRIP.rev) {
+    const t = todayIso();
+    for (const d of Object.keys(plan.assign)) if (d >= t) delete plan.assign[d];
+    plan.rev = TRIP.rev; savePlan();
+  }
 
   const inTokyo = (date) => date >= TRIP.tokyo.from && date <= TRIP.tokyo.to;
   const inTrip = (date) => date >= TRIP.start && date <= TRIP.end;
