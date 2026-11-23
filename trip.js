@@ -996,8 +996,8 @@ window.SORTIES = {
     d: "Kawachi Fujien en semaine, puis Sarakurayama au coucher du soleil et de nuit",
     info: "Kawachi n'ouvre que du 21 au 29/11 cet automne, sans bus ni navette : odekake à 400 ¥ (réservé la veille) ou taxi. Mets des baskets, ça monte. Vérifie la veille que le jardin est ouvert (météo)",
     steps: [
-      { t: "JR jusqu'à Yahata, bus jusqu'à Ōkura", p: [["Gare de Yahata", "八幡駅 北九州"]] },
-      { t: "Odekake jusqu'à Kawachi", info: "400 ¥, réservé la veille", p: [] },
+      { t: "JR jusqu'à Yahata", p: [["Gare de Yahata", "八幡駅 北九州"]] },
+      { t: "Taxi jusqu'à Kawachi", info: "Depuis la gare JR de Yahata, environ 15 min, environ 2 500–3 000 ¥. Au retour, il n'y a pas de taxis qui attendent : appelle-en un avec l'appli GO ou demande à l'accueil du jardin. Sinon, descends à pied jusqu'au terminus de bus Kami-Shigeta (上重田, environ 50 min), puis bus Nishitetsu jusqu'à Yahata", p: [["Gare de Yahata", "八幡駅 北九州"], ["Terminus de bus Kami-Shigeta", "上重田 バス停 北九州"]] },
       { t: "Kawachi Fujien", info: "≈ 500 ¥, 9h–17h. Sentier des érables d'environ 30 min", p: [["Kawachi Fujien", "河内藤園", { w: "https://kawachi-fujien.com/" }]] },
       { t: "Retour à la gare JR de Yahata, navette gratuite jusqu'au téléphérique", info: "Environ 1 navette par heure (pas le mardi)", p: [["Gare de Yahata", "八幡駅 北九州"]] },
       { t: "Sarakurayama : coucher du soleil et vue de nuit", info: "Téléphérique + slope car 1 230 ¥ A/R. Dernière montée 19h20", p: [["Téléphérique du mont Sarakura", "皿倉山ケーブルカー", { w: "https://www.sarakurayama-cablecar.co.jp/" }]] },
@@ -1201,7 +1201,6 @@ window.BOOKINGS = [
   { id: "sunq", what: "SUNQ All Kyushu 3 jours (24–26/11) en version numérique dans l'appli « my route », puis réserver les places : Sakurajima-go 8h00 (24/11) et Kirishima-go 12h50 (25/11). Le matin, retirer le ticket de place au guichet du terminal de Tenjin (3e étage)", for: "2026-11-24", cost: "12 000 ¥ en numérique (14 000 ¥ en papier)" },
   { id: "kagoshima", what: "Hostel Tomal, dortoir hommes (24→25/11)", for: "2026-11-24", cost: "2 800 ¥" },
   { id: "kumamoto", what: "HappyCloset&Wasamon, dortoir hommes (25→26/11)", for: "2026-11-25", cost: "4 200 ¥" },
-  { id: "odekake", what: "Appeler l'odekake pour Kawachi : 093-662-2310, en semaine 9h–16h, au plus tard le 26/11", for: "2026-11-26", cost: "400 ¥" },
   { id: "iki", what: "Iruka no Yado, petit appartement (30/11→1/12), ou Wasabi 4 000 ¥. Ferries sans réservation", for: "2026-11-30", cost: "2 900 ¥" },
   { id: "karatsu", what: "HOTEL KARAE, dortoir (1→2/12)", for: "2026-12-01", cost: "4 400 ¥" },
   { id: "takeo", what: "yol Guesthouse, dortoir (2→3/12)", for: "2026-12-02", cost: "4 500 ¥" },
