@@ -1186,7 +1186,7 @@ window.EVENTS = [
   { when: "31 oct.", from: "2026-10-31", what: "Halloween à Tokyo", where: "Pub crawl Roppongi", date: "2026-10-31" },
   { when: "3 nov.", from: "2026-11-03", what: "Jour férié", where: "Tokyo : shopping otaku + punk" },
   { when: "23 nov.", from: "2026-11-23", what: "Jour férié", where: "" },
-  { when: "6 déc.", from: "2026-12-06", what: "Marathon international de Fukuoka (gratuit)", where: "Non placé (tu es à Kumamoto)" },
+  { when: "6 déc.", from: "2026-12-06", what: "Marathon international de Fukuoka (gratuit)", where: "Dim. 6 déc. (jour de repos) : départ 12h10 au stade Heiwadai, parc Maizuru", date: "2026-12-06" },
 ];
 
 /* ---------- À réserver ---------- */
