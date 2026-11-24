@@ -148,11 +148,10 @@ window.SORTIES = {
     ],
     p: [] },
   kagoshima2: { t: "Kagoshima → Kumamoto", full: true, city: "Kagoshima", night: "Kumamoto", out: ["breakfast", "lunch", "dinner"], pass: "SUNQ · jour 2",
-    d: "Sengan-en le matin, car Kirishima-go pour Kumamoto, statue de Luffy, Shimotōri le soir",
+    d: "Car Kirishima-go de 9h00 pour Kumamoto, statue de Luffy, Kumamoto l'après-midi, Shimotōri le soir",
     info: "Car Kirishima-go 12h50 depuis Kagoshima-Chūō ✅ (≈ 3h, inclus dans le SUNQ, places à réserver). Nuit : HappyCloset&Wasamon, dortoir hommes (4 200 ¥)",
     steps: [
-      { h: "Matin", t: "Jardin Sengan-en", info: "Environ 1 600 ¥. Le jardin du clan Shimazu face au volcan", p: [["Sengan-en", "仙巌園", { w: "https://www.kagoshima-yokanavi.jp/spot/10006" }]] },
-      { h: "12h50", t: "Car Kirishima-go depuis Kagoshima-Chūō", info: "≈ 3h", p: [["Gare de Kagoshima-Chuo", "鹿児島中央駅"]] },
+      { h: "9h00", t: "Car Kirishima-go depuis Kagoshima-Chūō-eki-mae (réservation 189654200)", info: "Arrivée à Kumamoto Kenchō-mae 11h59. Depuis Hostel Tomal : pars à 7h50, 5 min à pied jusqu'au tram Izuro-dori, puis tram jusqu'à Kagoshima-Chūō-eki-mae (environ 15 min). Récupère le ticket de place au guichet du terminal avant 8h45", p: [["Gare de Kagoshima-Chuo", "鹿児島中央駅"]] },
       { t: "🏴‍☠️ Descends à Kumamoto Kenchō-mae : statue de Luffy", info: "Gratuit, juste devant la préfecture", p: [["Statue de Luffy (préfecture de Kumamoto)", "ルフィ像 熊本県庁", { a: "熊本市中央区水前寺6-18-1" }]] },
       { h: "Soir", t: "Galeries Shimotōri, basashi", p: [["Shimotori", "下通 熊本"]] },
       { t: "HappyCloset&Wasamon", p: [["HappyCloset&Wasamon Hostel", "HappyCloset Wasamon 熊本"]] },
